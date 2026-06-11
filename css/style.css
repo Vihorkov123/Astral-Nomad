@@ -1,0 +1,191 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #05060d;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color: #dfe6ff;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+}
+
+#ui { position: fixed; inset: 0; pointer-events: none; }
+#ui .screen, #ui #dialog, #ui #modal { pointer-events: auto; }
+
+.hidden { display: none !important; }
+
+/* ---------- HUD ---------- */
+#hud {
+  position: absolute; inset: 0;
+  padding: 14px 18px;
+}
+.hud-left { position: absolute; top: 14px; left: 18px; }
+.bar-wrap {
+  width: 220px; height: 20px;
+  background: rgba(10, 14, 30, .8);
+  border: 1px solid #46507a;
+  border-radius: 4px;
+  position: relative; overflow: hidden;
+}
+.bar { height: 100%; transition: width .15s; }
+.bar.hp { background: linear-gradient(90deg, #b1283c, #e84a5f); }
+.bar-text {
+  position: absolute; inset: 0;
+  text-align: center; font-size: 13px; line-height: 20px;
+  text-shadow: 0 1px 2px #000;
+}
+.res-row { margin-top: 8px; display: flex; gap: 14px; font-size: 15px; }
+.res { background: rgba(10,14,30,.7); padding: 3px 8px; border-radius: 4px; }
+
+.hud-right { position: absolute; top: 14px; right: 18px; text-align: right; }
+#star-name { font-size: 17px; font-weight: 600; letter-spacing: 1px; text-shadow: 0 1px 3px #000; }
+#star-progress { font-size: 13px; opacity: .85; margin-top: 4px; }
+
+#prompt {
+  position: absolute; left: 50%; bottom: 18%;
+  transform: translateX(-50%);
+  background: rgba(8, 12, 28, .85);
+  border: 1px solid #5a6aa8;
+  padding: 8px 16px; border-radius: 6px;
+  font-size: 15px;
+}
+#controls-hint {
+  position: absolute; bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px; opacity: .55; white-space: nowrap;
+}
+
+/* ---------- Toasts ---------- */
+#toasts {
+  position: absolute; top: 70px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+  pointer-events: none;
+}
+.toast {
+  background: rgba(8, 12, 28, .9);
+  border: 1px solid #5a6aa8;
+  border-radius: 6px;
+  padding: 7px 16px;
+  font-size: 14px;
+  animation: toast-in .2s ease-out;
+}
+.toast.danger { border-color: #c2304a; color: #ffb4c0; }
+.toast.gold { border-color: #c9a227; color: #ffe9a0; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; } }
+
+/* ---------- Диалог ---------- */
+#dialog {
+  position: absolute; left: 50%; bottom: 6%;
+  transform: translateX(-50%);
+  width: min(720px, 92vw);
+  background: rgba(6, 9, 22, .94);
+  border: 1px solid #5a6aa8;
+  border-radius: 10px;
+  padding: 16px 20px 12px;
+  cursor: pointer;
+}
+#dlg-who { font-size: 13px; letter-spacing: 2px; color: #8fa0e8; text-transform: uppercase; margin-bottom: 6px; }
+#dlg-text { font-size: 17px; line-height: 1.45; min-height: 50px; }
+#dlg-next { text-align: right; font-size: 11px; opacity: .5; margin-top: 6px; }
+
+/* ---------- Модал ---------- */
+#modal {
+  position: absolute; inset: 0;
+  background: rgba(0, 0, 0, .55);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-box {
+  width: min(520px, 92vw);
+  background: #0b1024;
+  border: 1px solid #5a6aa8;
+  border-radius: 10px;
+  padding: 22px 26px;
+}
+#modal-title { font-size: 19px; font-weight: 600; margin-bottom: 10px; }
+#modal-desc { font-size: 15px; line-height: 1.5; opacity: .9; margin-bottom: 18px; white-space: pre-line; }
+#modal-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- Экраны ---------- */
+.screen {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(3, 4, 10, .88);
+}
+.menu-box {
+  width: min(460px, 92vw);
+  text-align: center;
+  padding: 30px;
+}
+.menu-box.wide { width: min(560px, 94vw); }
+.menu-box h1 { font-size: 34px; letter-spacing: 6px; margin-bottom: 6px; color: #cdd8ff; }
+.menu-box h2 { font-size: 24px; letter-spacing: 3px; margin-bottom: 18px; }
+.menu-box .subtitle { opacity: .7; margin-bottom: 30px; font-size: 14px; letter-spacing: 1px; }
+.menu-box p { font-size: 15px; line-height: 1.55; margin-bottom: 18px; white-space: pre-line; }
+.menu-note { font-size: 12px !important; opacity: .5; margin-top: 18px; }
+
+.menu-box.death h2 { color: #e84a5f; }
+.menu-box.death p { color: #ffb4c0; }
+
+.btn {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  padding: 12px;
+  font-size: 16px;
+  font-family: inherit;
+  color: #dfe6ff;
+  background: #161d3d;
+  border: 1px solid #5a6aa8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.btn:hover { background: #232d5c; }
+.btn.small { width: auto; display: inline-block; padding: 9px 26px; margin-top: 16px; }
+.btn.choice { width: auto; flex: 1; min-width: 120px; margin: 0; }
+.btn.danger { border-color: #c2304a; }
+.btn.danger:hover { background: #4a1525; }
+
+/* ---------- Карта звёзд ---------- */
+#star-list { display: flex; flex-direction: column; gap: 8px; max-height: 56vh; overflow-y: auto; }
+.star-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px;
+  background: #10162e;
+  border: 1px solid #46507a;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  font-size: 15px;
+}
+.star-item:hover { background: #1b2347; }
+.star-item.locked { opacity: .45; cursor: default; }
+.star-item.locked:hover { background: #10162e; }
+.star-item .star-sub { font-size: 12px; opacity: .7; margin-top: 3px; }
+.star-item .star-mark { font-size: 18px; }
+
+/* ---------- Настройки ---------- */
+.slider-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 16px;
+  margin: 14px 0;
+  font-size: 15px;
+}
+.slider-row input[type=range] { flex: 1; accent-color: #6e82e8; }
+
+@media (max-width: 700px) {
+  .menu-box h1 { font-size: 24px; letter-spacing: 3px; }
+  #controls-hint { display: none; }
+  .bar-wrap { width: 150px; }
+}

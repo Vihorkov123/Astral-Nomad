@@ -1,0 +1,17 @@
+# Зависимости и сборки
+node_modules/
+dist/
+build/
+*.zip
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# ОС
+.DS_Store
+Thumbs.db
+
+# Логи
+*.log
