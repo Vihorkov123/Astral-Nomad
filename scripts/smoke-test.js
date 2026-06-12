@@ -89,7 +89,7 @@ function check(name, cond) {
 
   // Полёт на звезду 1
   G.Game.travelTo(0);
-  check('мир построен', G.Game.world && G.Game.world.chests.length === 3);
+  check('мир построен', G.Game.world && G.Game.world.chests.length === 5);
   check('игрок у капсулы', G.Util.dist(G.Game.player.x, G.Game.player.y, G.Game.world.capsule.x, G.Game.world.capsule.y) < 80);
   check('препятствия не на сундуках', G.Game.world.chests.every(c =>
     G.Game.world.obstacles.every(o =>
@@ -134,8 +134,12 @@ function check(name, cond) {
   check('монстр убит ножом', G.Game.monsters.length === 0);
   check('награда за риск выдана после боя', G.SaveSys.data.gold > goldBeforeKill);
 
-  // Прогрессия: открыто 2 сундука (needOpen=2) → звезда 2 доступна
-  check('следующая звезда открыта', G.SaveSys.data.maxStar === 1);
+  // Прогрессия: needOpen=4 — вскрываем ещё два контейнера безопасно
+  G.Math.random = () => 0.99;
+  G.Game.openChest(G.Game.world.chests[2]);
+  G.Game.openChest(G.Game.world.chests[3]);
+  G.Math.random = origRandom;
+  check('следующий сектор открыт после 4 контейнеров', G.SaveSys.data.maxStar === 1);
 
   // Смерть: золото −30%, еда в ноль, звёзды сохранены
   G.SaveSys.data.gold = 100;
@@ -151,7 +155,7 @@ function check(name, cond) {
   // Респаун
   G.Game.respawn();
   check('респаун на текущей звезде', G.Game.world.star.id === 0 && G.Game.player.hp === G.Game.player.maxHp);
-  check('открытые сундуки не сбросились', G.Game.world.chests.filter(c => c.opened).length === 2);
+  check('открытые контейнеры не сбросились', G.Game.world.chests.filter(c => c.opened).length === 4);
 
   // Хранитель на звезде 4 (id=3): вскрываем все 5 сундуков
   G.SaveSys.data.maxStar = 3;
@@ -187,6 +191,18 @@ function check(name, cond) {
   check('критический удар наносит двойной урон', boss.hp === hpBeforeCrit - 4);
   G.Math.random = origRandom;
 
+  // Удар по площади: замах → урон в радиусе → перезарядка (уязвим)
+  boss.vulnT = 0; boss.windupT = 0; boss.slamCd = 0;
+  const pl3 = G.Game.player;
+  boss.x = pl3.x + 50; boss.y = pl3.y;
+  pl3.hp = pl3.maxHp; pl3.inv = 0;
+  G.Game.update(1 / 60);
+  check('Страж начал замах рядом с игроком', boss.windupT > 0);
+  boss.windupT = 0.001;
+  G.Game.update(1 / 60);
+  check('удар по площади нанёс урон и Страж перезаряжается',
+    pl3.hp === pl3.maxHp - boss.dmg && boss.vulnT > 0);
+
   // Убиваем босса → артефакт
   guard = 0;
   while (G.Game.monsters.length && guard++ < 40) {
@@ -195,7 +211,15 @@ function check(name, cond) {
     boss.x = G.Game.player.x + 30; boss.y = G.Game.player.y;
     G.Game.attack();
   }
-  check('Хранитель повержен, артефакт получен', G.SaveSys.data.artifacts.includes('Сердце Ковчега'));
+  check('Страж повержен, ядро получено', G.SaveSys.data.artifacts.includes('Ядро Стража'));
+
+  // Магазин-синтезатор: покупка за лом
+  G.SaveSys.data.gold = 50;
+  const foodBefore = G.SaveSys.data.food;
+  check('покупка еды за лом', G.Game.buyShopItem(0) === true &&
+    G.SaveSys.data.food === foodBefore + 3 && G.SaveSys.data.gold === 35);
+  G.SaveSys.data.gold = 5;
+  check('покупка не проходит без лома', G.Game.buyShopItem(1) === false && G.SaveSys.data.gold === 5);
 
   // Финал: концовка 2 открывает бесконечные звёзды
   G.SaveSys.data.maxStar = 4;
@@ -205,7 +229,7 @@ function check(name, cond) {
   check('концовка 2 показана', G.__ending === 2);
   check('бесконечные звёзды открыты', G.SaveSys.data.endless === true && G.SaveSys.data.maxStar === 5);
   const gen = G.getStar(7);
-  check('генерация звёзд за пределами карты', gen.name.includes('Неизвестная') && gen.hpMul > 1.8);
+  check('генерация секторов за пределами карты', gen.name.includes('Дальний сектор') && gen.hpMul > 1.8);
 
   // Сохранение в localStorage (fallback без SDK)
   G.SaveSys.saveNow();

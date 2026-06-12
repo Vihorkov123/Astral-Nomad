@@ -124,12 +124,12 @@ const UI = {
 
     const star = Game.star;
     if (star) {
-      this.els['star-name'].textContent = 'Звезда-' + (star.id + 1) + ': ' + star.name;
+      this.els['star-name'].textContent = 'Сектор ' + (star.id + 1) + ': ' + star.name;
       const opened = SaveSys.starOpened(star.id).length;
       const total = star.small + star.big;
       this.els['star-progress'].textContent = star.finale
-        ? 'Финальная звезда'
-        : 'Сундуки: ' + opened + ' / ' + total + (star.needOpen > opened ? ' (для новой звезды: ' + star.needOpen + ')' : ' ✓');
+        ? 'Финальный сектор'
+        : 'Контейнеры: ' + opened + ' / ' + total + (star.needOpen > opened ? ' (для нового сектора: ' + star.needOpen + ')' : ' ✓');
     }
   },
 
@@ -246,10 +246,10 @@ const UI = {
       const opened = SaveSys.starOpened(i).length;
       const total = star.small + star.big;
       item.innerHTML =
-        '<span><b>Звезда-' + (i + 1) + ': ' + star.name + '</b>' +
+        '<span><b>Сектор ' + (i + 1) + ': ' + star.name + '</b>' +
         '<div class="star-sub">' + (unlocked
-          ? star.desc + (total ? ' · Сундуки: ' + opened + '/' + total : '')
-          : 'Заблокировано — открой сундуки на предыдущей звезде') + '</div></span>' +
+          ? star.desc + (total ? ' · Контейнеры: ' + opened + '/' + total : '')
+          : 'Заблокировано — вскрой контейнеры в предыдущем секторе') + '</div></span>' +
         '<span class="star-mark">' + (unlocked ? (i === d.currentStar ? '◉' : '○') : '🔒') + '</span>';
       if (unlocked) {
         item.addEventListener('click', () => { AudioSys.sfx('ui'); Game.travelTo(i); });

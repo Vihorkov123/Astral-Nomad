@@ -45,8 +45,8 @@ const Ents = {
       lootChest: lootChest || null,
       loseT: 0,                 // после рывка игрока цель потеряна
       wanderA: Math.random() * Math.PI * 2,
-      // Хранитель: после 3 атак — окно уязвимости
-      attacks: 0, vulnT: 0,
+      // Страж Ядра: замах → удар по площади → перезарядка (уязвим)
+      windupT: 0, slamCd: 2, slamR: 95, vulnT: 0,
       hitFlash: 0,
       face: { x: 0, y: 1 }
     };
@@ -57,13 +57,27 @@ const Ents = {
     m.attackCd -= dt;
     m.loseT = Math.max(0, m.loseT - dt);
 
-    if (m.kind === 'guardian' && m.vulnT > 0) {
-      m.vulnT -= dt;          // выдохся — стоит и уязвим
-      return;
-    }
-
     const dx = player.x - m.x, dy = player.y - m.y;
     const dist = Math.hypot(dx, dy) || 0.001;
+
+    // --- Страж Ядра: цикл «замах → удар по площади → перезарядка» ---
+    if (m.kind === 'guardian') {
+      if (m.vulnT > 0) { m.vulnT -= dt; return null; }   // перезарядка: стоит, уязвим
+      if (m.windupT > 0) {                                // замах: телеграф удара
+        m.windupT -= dt;
+        if (m.windupT <= 0) { m.vulnT = 3.0; m.slamCd = 1.2; return 'slam'; }
+        return null;
+      }
+      m.slamCd -= dt;
+      if (dist > m.r + 10) {
+        m.x += (dx / dist) * m.speed * dt;
+        m.y += (dy / dist) * m.speed * dt;
+        m.face.x = dx / dist; m.face.y = dy / dist;
+      }
+      collideWorld(m, world);
+      if (m.slamCd <= 0 && dist < 130) m.windupT = 0.9;
+      return null;
+    }
 
     if (m.loseT > 0) {
       // Потерял цель — бесцельно дрейфует
@@ -78,13 +92,9 @@ const Ents = {
 
     collideWorld(m, world);
 
-    // Атака в упор
+    // Атака в упор (обычные дроны)
     if (m.loseT <= 0 && dist < m.r + player.r + 6 && m.attackCd <= 0) {
       m.attackCd = m.attackCdBase;
-      if (m.kind === 'guardian') {
-        m.attacks++;
-        if (m.attacks >= 3) { m.attacks = 0; m.vulnT = 2.6; }
-      }
       return 'attack';
     }
     return null;

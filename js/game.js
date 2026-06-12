@@ -87,10 +87,11 @@ const Game = {
     SaveSys.saveNow();
     SDK.gameplayStart();
 
-    // Сюжетные сцены при первом прибытии
+    // Сюжетные сцены при первом прибытии: память возвращается по секторам
     const seen = d.seen;
     if (i === 0 && !seen.act1) { seen.act1 = true; UI.say(Story.ACT1); SaveSys.scheduleSave(); }
     else if (i === 1 && !seen.act2) { seen.act2 = true; UI.say(Story.ACT2); SaveSys.scheduleSave(); }
+    else if (i === 2 && !seen.mem3) { seen.mem3 = true; UI.say(Story.MEM3); SaveSys.scheduleSave(); }
     else if (i === 3 && !seen.act4) { seen.act4 = true; UI.say(Story.ACT4); SaveSys.scheduleSave(); }
     else if (i === 4 && !seen.finale) { seen.finale = true; UI.say(Story.FINALE_INTRO); SaveSys.scheduleSave(); }
   },
@@ -136,8 +137,8 @@ const Game = {
   // ================= Сундуки =================
 
   _chestTitle(type) {
-    return type === 'small' ? 'Маленький сундук'
-         : type === 'big' ? 'Большой сундук' : 'Центральный сундук';
+    return type === 'small' ? 'Малый контейнер'
+         : type === 'big' ? 'Большой контейнер' : 'Консоль шлюпки';
   },
 
   askOpenChest(chest) {
@@ -148,13 +149,13 @@ const Game = {
     const chance = isBig ? star.bigChance : star.smallChance;
     const mon = Story.MONSTERS[isBig ? 'knight' : 'bug'];
     const desc =
-      'Шанс монстра: ' + Util.pct(chance) + '. Тип: «' + mon.name + '» (' + mon.hint + ').\n' +
+      'Шанс охраны: ' + Util.pct(chance) + '. Тип: «' + mon.name + '» (' + mon.hint + ').\n' +
       (isBig
-        ? 'Награда: ×3 к золоту, 2 лечебных инъекции, редкая деталь.'
-        : 'Награда: еда, немного золота, иногда бинт.');
+        ? 'Награда: ×3 лома, аптечки, энергоячейка.'
+        : 'Награда: еда и лом, иногда аптечка.');
 
-    UI.modal('Открыть ' + this._chestTitle(chest.type).toLowerCase() + '?', desc, [
-      { label: 'Открыть', cls: isBig ? 'danger' : '', cb: () => this.openChest(chest) },
+    UI.modal('Вскрыть ' + this._chestTitle(chest.type).toLowerCase() + '?', desc, [
+      { label: 'Вскрыть', cls: isBig ? 'danger' : '', cb: () => this.openChest(chest) },
       { label: 'Отойти' }
     ]);
   },
@@ -177,7 +178,7 @@ const Game = {
       this.monsters.push(m);
       AudioSys.sfx('monster');
       this.cam.shake = 0.3;
-      UI.toast('Из сундука вырывается тень: ' + Story.MONSTERS[kind].name + '!', 'danger');
+      UI.toast('Из контейнера вырывается охрана: ' + Story.MONSTERS[kind].name + '!', 'danger');
     } else {
       this.grantLoot(chest, false);
       if (star.id === 0 && !SaveSys.data.seen.act1safe) {
@@ -206,9 +207,9 @@ const Game = {
     AudioSys.sfx('loot');
     AudioSys.sfx('gold');
     this._burst(chest.x, chest.y, '#ffe9a0', 14);
-    let msg = '+' + gold + ' золота, +' + food + ' еды';
+    let msg = '+' + gold + ' лома, +' + food + ' еды';
     if (meds) msg += ', +' + meds + ' аптечка';
-    if (parts) msg += ', +' + parts + ' деталь';
+    if (parts) msg += ', +' + parts + ' энергоячейка';
     UI.toast(msg, 'gold');
 
     // Первый большой сундук дарит второе оружие
@@ -242,11 +243,11 @@ const Game = {
       if (star.id < lastBase || d.endless) {
         d.maxStar = star.id + 1;
         AudioSys.sfx('unlock');
-        UI.toast('Открыта новая звезда: ' + getStar(d.maxStar).name + '! (карта — у капсулы)', 'gold');
+        UI.toast('Открыт новый сектор: ' + getStar(d.maxStar).name + '! (карта — у шлюпки)', 'gold');
       }
     }
 
-    // Хранитель: вскрыты ВСЕ сундуки на Шепчущих вратах
+    // Страж Ядра: вскрыты ВСЕ контейнеры в Древнем комплексе
     if (star.guardian && opened >= total && !d.seen.guardianDead && !this.monsters.some(m => m.kind === 'guardian')) {
       const m = Ents.makeMonster('guardian', this.world.capsule.x, this.world.capsule.y - 180, star, null);
       this.monsters.push(m);
@@ -266,8 +267,8 @@ const Game = {
           UI.say(Story.ENDING2_DIALOG, () => this.ending(2));
         } }
     ];
-    UI.modal(c.title, c.desc + (SaveSys.data.artifacts.includes('Сердце Ковчега')
-      ? '\n\n«Сердце Ковчега» резонирует с замком сундука.' : ''), opts);
+    UI.modal(c.title, c.desc + (SaveSys.data.artifacts.includes('Ядро Стража')
+      ? '\n\n«Ядро Стража» подключено: энергии хватит на любой путь.' : ''), opts);
   },
 
   ending(n) {
@@ -308,7 +309,7 @@ const Game = {
     if (first) UI.say(Story.ACT3_DEATH);
   },
 
-  // ================= Капсула =================
+  // ================= Шлюпка: отдых, синтезатор, карта =================
 
   capsuleMenu() {
     const d = SaveSys.data;
@@ -320,18 +321,51 @@ const Game = {
         d.food -= 1;
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + 10);
         if (this.monsters.length) {
-          // Отступление: тени уходят, удержанный ими лут потерян
+          // Отступление: дроны уходят, удержанный ими лут потерян
           this.monsters = [];
-          UI.toast('Тени отступили от света капсулы. Их добыча потеряна.', 'danger');
+          UI.toast('Дроны отступили от шлюпки. Их добыча потеряна.', 'danger');
         }
         AudioSys.sfx('heal');
         this.lowHpWarned = false;
         SaveSys.scheduleSave();
       }
     });
-    opts.push({ label: 'Карта звёзд', cb: () => this.openStarMap() });
+    opts.push({ label: 'Синтезатор (припасы за лом)', cb: () => this.openShop() });
+    opts.push({ label: 'Карта секторов', cb: () => this.openStarMap() });
     opts.push({ label: 'Отмена' });
-    UI.modal('Спасательная капсула', 'Свет капсулы отпугивает тени. Здесь можно отдохнуть или выбрать звезду.', opts);
+    UI.modal('Аварийная шлюпка', 'Поле шлюпки отпугивает дронов. Отдых, синтез припасов и карта секторов.', opts);
+  },
+
+  SHOP_ITEMS: [
+    { name: 'Еда ×3', cost: 15, apply(d) { d.food += 3; } },
+    { name: 'Аптечка', cost: 30, apply(d) { d.meds += 1; } },
+    { name: 'Стимулятор (случайный бафф)', cost: 20, apply(d, g) {
+        if (!g.player) return;
+        if (Math.random() < 0.5) { g.player.buffSpeed = 25; UI.toast('+40% скорости на 25 с', 'gold'); }
+        else { g.player.buffDmg = 25; UI.toast('+50% урона на 25 с', 'gold'); }
+      } }
+  ],
+
+  buyShopItem(i) {
+    const d = SaveSys.data;
+    const it = this.SHOP_ITEMS[i];
+    if (d.gold < it.cost) { UI.toast('Не хватает лома!', 'danger'); return false; }
+    d.gold -= it.cost;
+    it.apply(d, this);
+    AudioSys.sfx('gold');
+    UI.toast(it.name + ' — синтезировано');
+    SaveSys.scheduleSave();
+    return true;
+  },
+
+  openShop() {
+    const d = SaveSys.data;
+    const opts = this.SHOP_ITEMS.map((it, i) => ({
+      label: it.name + ' — ' + it.cost + ' 🔩',
+      cb: () => { this.buyShopItem(i); this.openShop(); } // окно остаётся: удобно брать несколько
+    }));
+    opts.push({ label: 'Закрыть' });
+    UI.modal('СИНТЕЗАТОР', 'ЭХО перерабатывает лом в припасы.\nЛом: ' + d.gold + ' 🔩', opts);
   },
 
   // ================= Обновление =================
@@ -430,13 +464,13 @@ const Game = {
     for (const c of this.world.chests) {
       if (!c.opened && Util.dist(p.x, p.y, c.x, c.y) < 48) {
         target = { kind: 'chest', c };
-        prompt = 'E — открыть: ' + this._chestTitle(c.type).toLowerCase();
+        prompt = 'E — вскрыть: ' + this._chestTitle(c.type).toLowerCase();
         break;
       }
     }
     if (!target && Util.dist(p.x, p.y, this.world.capsule.x, this.world.capsule.y) < 60) {
       target = { kind: 'capsule' };
-      prompt = 'E — капсула (отдых / карта звёзд)';
+      prompt = 'E — шлюпка (отдых / синтезатор / карта)';
     }
     UI.setPrompt(prompt);
 
@@ -450,6 +484,20 @@ const Game = {
     for (let i = this.monsters.length - 1; i >= 0; i--) {
       const m = this.monsters[i];
       const act = Ents.updateMonster(m, dt, p, this.world);
+      if (act === 'slam') {
+        // Удар Стража по площади: урон в радиусе, затем он перезаряжается
+        AudioSys.sfx('guardian');
+        this.cam.shake = 0.6;
+        this._burst(m.x, m.y, '#8a93e8', 26);
+        if (Util.dist(p.x, p.y, m.x, m.y) < m.slamR + p.r && p.inv <= 0) {
+          p.hp -= m.dmg;
+          p.inv = 0.6;
+          AudioSys.sfx('hurt');
+          this._burst(p.x, p.y, '#e84a5f', 10);
+          if (p.hp <= 0) { this.die(); return; }
+        }
+        continue;
+      }
       if (act === 'attack' && p.inv <= 0) {
         p.hp -= m.dmg;
         p.inv = 0.6; // окно неуязвимости — толпа не растерзает за секунду
@@ -458,7 +506,7 @@ const Game = {
         this._burst(p.x, p.y, '#e84a5f', 8);
         if (p.hp / p.maxHp < 0.3 && !this.lowHpWarned) {
           this.lowHpWarned = true;
-          UI.toast('Здоровье на исходе! Отступи к капсуле.', 'danger');
+          UI.toast('Здоровье на исходе! Отступи к шлюпке.', 'danger');
         }
         if (p.hp <= 0) { this.die(); return; }
       }
@@ -513,7 +561,7 @@ const Game = {
 
       if (m.kind === 'guardian' && m.vulnT <= 0) {
         AudioSys.sfx('hit');
-        UI.toast('Щит Хранителя! Дождись, когда он выдохнется.', 'danger');
+        UI.toast('Щит Стража! Бей, когда он перезаряжается после удара.', 'danger');
         continue;
       }
 
@@ -550,8 +598,8 @@ const Game = {
     } else if (m.kind === 'guardian') {
       d.seen.guardianDead = true;
       d.gold += 120;
-      if (!d.artifacts.includes('Сердце Ковчега')) d.artifacts.push('Сердце Ковчега');
-      UI.toast('+120 золота. Получен артефакт: «Сердце Ковчега»!', 'gold');
+      if (!d.artifacts.includes('Ядро Стража')) d.artifacts.push('Ядро Стража');
+      UI.toast('+120 лома. Получено «Ядро Стража»!', 'gold');
       UI.say(Story.GUARDIAN_WON);
     }
     SaveSys.scheduleSave();
@@ -752,6 +800,16 @@ const Game = {
       aura.addColorStop(1, 'rgba(40,40,80,0)');
       ctx.fillStyle = aura;
       ctx.beginPath(); ctx.arc(m.x, m.y, m.r * 2.4, 0, Math.PI * 2); ctx.fill();
+
+      // Телеграф удара по площади: красная зона растёт во время замаха
+      if (m.windupT > 0) {
+        const prog = 1 - m.windupT / 0.9;
+        ctx.fillStyle = 'rgba(232,74,95,' + (0.12 + prog * 0.15) + ')';
+        ctx.beginPath(); ctx.arc(m.x, m.y, m.slamR, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(232,74,95,0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(m.x, m.y, m.slamR * prog, 0, Math.PI * 2); ctx.stroke();
+      }
     }
 
     ctx.fillStyle = m.hitFlash > 0 ? '#ffffff' : m.color;

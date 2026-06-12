@@ -134,7 +134,16 @@ html, body {
   padding: 30px;
 }
 .menu-box.wide { width: min(560px, 94vw); }
-.menu-box h1 { font-size: 34px; letter-spacing: 6px; padding-left: 6px; margin-bottom: 6px; color: #cdd8ff; }
+.menu-box h1 {
+  /* clamp не даёт длинному заголовку вылезти за рамку и сбить центровку;
+     padding-left компенсирует «хвост» letter-spacing после последней буквы */
+  font-size: clamp(19px, 5.4vw, 26px);
+  letter-spacing: 3px;
+  padding-left: 3px;
+  white-space: nowrap;
+  margin-bottom: 6px;
+  color: #cdd8ff;
+}
 .menu-box h2 { font-size: 24px; letter-spacing: 3px; margin-bottom: 18px; }
 .menu-box .subtitle { opacity: .7; margin-bottom: 30px; font-size: 14px; letter-spacing: 1px; }
 .menu-box p { font-size: 15px; line-height: 1.55; margin-bottom: 18px; white-space: pre-line; }
