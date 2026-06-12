@@ -7,8 +7,8 @@ const Input = {
 
   init() {
     window.addEventListener('keydown', e => {
-      // Не даём странице скроллиться стрелками и пробелом
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+      // Не даём странице скроллиться стрелками/пробелом и уводить фокус по Tab
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab'].includes(e.code)) {
         e.preventDefault();
       }
       if (!this.down[e.code]) this.pressed[e.code] = true;

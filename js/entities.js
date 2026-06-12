@@ -2,23 +2,33 @@
 
 const Ents = {
 
+  // Оружие: arc — минимальный косинус угла до цели (меньше = шире взмах)
+  WEAPONS: {
+    knife:  { id: 'knife',  name: 'Нож',              short: '🔪 Нож',   dmg: 2, range: 56, arc: 0.15, cd: 0.4,  color: 'rgba(220,235,255,' },
+    plasma: { id: 'plasma', name: 'Плазменный резак', short: '⚡ Резак', dmg: 4, range: 78, arc: -0.2, cd: 0.75, color: 'rgba(110,230,255,' }
+  },
+
+  CRIT_CHANCE: 0.15,
+  CRIT_MUL: 2,
+
   makePlayer(x, y) {
     return {
       x, y, r: 13,
-      hp: 20, maxHp: 20,
+      hp: 30, maxHp: 30,
       speed: 150,
       face: { x: 0, y: 1 },
       attackCd: 0, attackAnim: 0,
       dashT: 0, dashCd: 0, inv: 0,
-      dashDir: { x: 0, y: 1 }
+      dashDir: { x: 0, y: 1 },
+      buffSpeed: 0, buffDmg: 0   // таймеры баффов, сек
     };
   },
 
   // База монстров; множители звезды применяются при спавне
   MONSTER_BASE: {
-    bug:      { r: 10, hp: 6,  dmg: 2, speed: 175, attackCd: 0.7, color: '#e8c84a', color2: '#9a7510' },
-    knight:   { r: 17, hp: 16, dmg: 6, speed: 72,  attackCd: 1.2, color: '#7a9a6a', color2: '#3d5232' },
-    guardian: { r: 26, hp: 30, dmg: 8, speed: 62,  attackCd: 1.4, color: '#2b2f4a', color2: '#8a93e8' }
+    bug:      { r: 10, hp: 6,  dmg: 2, speed: 170, attackCd: 0.8, color: '#e8c84a', color2: '#9a7510' },
+    knight:   { r: 17, hp: 16, dmg: 4, speed: 70,  attackCd: 1.4, color: '#7a9a6a', color2: '#3d5232' },
+    guardian: { r: 26, hp: 30, dmg: 7, speed: 62,  attackCd: 1.5, color: '#2b2f4a', color2: '#8a93e8' }
   },
 
   makeMonster(kind, x, y, star, lootChest) {

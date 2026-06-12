@@ -80,6 +80,8 @@ const AudioSys = {
     switch (name) {
       case 'ui':        this._tone(660, 0.06, 'square', 0.12); break;
       case 'knife':     this._noise(0.08, 0.25, 2400); this._tone(900, 0.05, 'sawtooth', 0.08, 300); break;
+      case 'plasma':    this._tone(180, 0.18, 'sawtooth', 0.2, 900); this._noise(0.12, 0.2, 1500); break;
+      case 'crit':      this._tone(700, 0.08, 'square', 0.22, 1400); this._tone(1100, 0.16, 'triangle', 0.2); break;
       case 'hit':       this._tone(220, 0.12, 'square', 0.2, 80); break;
       case 'hurt':      this._tone(160, 0.25, 'sawtooth', 0.25, 60); this._noise(0.15, 0.2, 400); break;
       case 'dash':      this._tone(300, 0.15, 'sine', 0.15, 700); break;

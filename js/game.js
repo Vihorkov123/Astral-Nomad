@@ -210,6 +210,24 @@ const Game = {
     if (meds) msg += ', +' + meds + ' аптечка';
     if (parts) msg += ', +' + parts + ' деталь';
     UI.toast(msg, 'gold');
+
+    // Первый большой сундук дарит второе оружие
+    if (isBig && !d.weapons.includes('plasma')) {
+      d.weapons.push('plasma');
+      d.curWeapon = 'plasma';
+      UI.toast('Новое оружие: «Плазменный резак»! (Tab — смена)', 'gold');
+      AudioSys.sfx('unlock');
+    } else if (this.player && Math.random() < (isBig ? 0.5 : 0.25)) {
+      // Временный бафф из сундука
+      if (Math.random() < 0.5) {
+        this.player.buffSpeed = 20;
+        UI.toast('Стимулятор: +40% скорости на 20 с', 'gold');
+      } else {
+        this.player.buffDmg = 20;
+        UI.toast('Боевой стимулятор: +50% урона на 20 с', 'gold');
+      }
+      AudioSys.sfx('heal');
+    }
   },
 
   checkChestProgress() {
@@ -338,7 +356,7 @@ const Game = {
 
     // --- Голод ---
     this.foodTimer += dt;
-    if (this.foodTimer >= 18) {
+    if (this.foodTimer >= 25) {
       this.foodTimer = 0;
       const d = SaveSys.data;
       if (d.food > 0) {
@@ -360,27 +378,32 @@ const Game = {
       this.starveTimer = 0;
     }
 
-    // --- Движение и рывок ---
+    // --- Движение, рывок, баффы ---
     p.attackCd -= dt;
     p.attackAnim = Math.max(0, p.attackAnim - dt);
     p.dashCd -= dt;
     p.inv = Math.max(0, p.inv - dt);
+    p.buffSpeed = Math.max(0, p.buffSpeed - dt);
+    p.buffDmg = Math.max(0, p.buffDmg - dt);
 
+    const speed = p.speed * (p.buffSpeed > 0 ? 1.4 : 1);
     const ax = Input.axis();
     if (p.dashT > 0) {
       p.dashT -= dt;
       p.x += p.dashDir.x * 430 * dt;
       p.y += p.dashDir.y * 430 * dt;
     } else {
-      p.x += ax.x * p.speed * dt;
-      p.y += ax.y * p.speed * dt;
+      p.x += ax.x * speed * dt;
+      p.y += ax.y * speed * dt;
       if (ax.x || ax.y) { p.face.x = ax.x; p.face.y = ax.y; }
     }
     collideWorld(p, this.world);
 
+    if (Input.wasPressed('Tab')) this.switchWeapon();
+
     if (Input.wasPressed('Space') && p.dashCd <= 0) {
       p.dashT = 0.18;
-      p.dashCd = 0.9;
+      p.dashCd = 0.7;
       p.inv = 0.35;
       const len = Math.hypot(ax.x, ax.y);
       p.dashDir = len ? { x: ax.x / len, y: ax.y / len } : { x: p.face.x, y: p.face.y };
@@ -429,6 +452,7 @@ const Game = {
       const act = Ents.updateMonster(m, dt, p, this.world);
       if (act === 'attack' && p.inv <= 0) {
         p.hp -= m.dmg;
+        p.inv = 0.6; // окно неуязвимости — толпа не растерзает за секунду
         this.cam.shake = 0.25;
         AudioSys.sfx('hurt');
         this._burst(p.x, p.y, '#e84a5f', 8);
@@ -444,20 +468,48 @@ const Game = {
     this._updateCamera();
   },
 
+  curWeapon() {
+    return Ents.WEAPONS[SaveSys.data.curWeapon] || Ents.WEAPONS.knife;
+  },
+
+  switchWeapon() {
+    const d = SaveSys.data;
+    if (d.weapons.length < 2) return;
+    const i = d.weapons.indexOf(d.curWeapon);
+    d.curWeapon = d.weapons[(i + 1) % d.weapons.length];
+    AudioSys.sfx('ui');
+    UI.toast('Оружие: ' + this.curWeapon().name);
+    SaveSys.scheduleSave();
+  },
+
   attack() {
     const p = this.player;
     if (p.attackCd > 0) return;
-    p.attackCd = 0.45;
+    const w = this.curWeapon();
+    p.attackCd = w.cd;
     p.attackAnim = 0.18;
-    AudioSys.sfx('knife');
+    AudioSys.sfx(w.id === 'plasma' ? 'plasma' : 'knife');
+
+    // Автоприцел: разворачиваемся к ближайшему монстру в радиусе —
+    // не нужно «драться в развороте», догоняющий враг бьётся сразу
+    let nearest = null, nd = Infinity;
+    for (const m of this.monsters) {
+      const d = Util.dist(p.x, p.y, m.x, m.y) - m.r;
+      if (d <= w.range && d < nd) { nd = d; nearest = m; }
+    }
+    if (nearest) {
+      const dx = nearest.x - p.x, dy = nearest.y - p.y;
+      const L = Math.hypot(dx, dy) || 1;
+      p.face.x = dx / L; p.face.y = dy / L;
+    }
 
     for (let i = this.monsters.length - 1; i >= 0; i--) {
       const m = this.monsters[i];
       const dx = m.x - p.x, dy = m.y - p.y;
       const dist = Math.hypot(dx, dy);
-      if (dist > 52 + m.r) continue;
+      if (dist > w.range + m.r) continue;
       const dot = (dx * p.face.x + dy * p.face.y) / (dist || 1);
-      if (dot < 0.2) continue;
+      if (dot < w.arc) continue;
 
       if (m.kind === 'guardian' && m.vulnT <= 0) {
         AudioSys.sfx('hit');
@@ -465,12 +517,16 @@ const Game = {
         continue;
       }
 
-      m.hp -= 2;
+      let dmg = w.dmg * (p.buffDmg > 0 ? 1.5 : 1);
+      const crit = Math.random() < Ents.CRIT_CHANCE;
+      if (crit) dmg *= Ents.CRIT_MUL;
+
+      m.hp -= dmg;
       m.hitFlash = 0.12;
-      m.x += (dx / (dist || 1)) * 10;
-      m.y += (dy / (dist || 1)) * 10;
-      AudioSys.sfx('hit');
-      this._burst(m.x, m.y, '#ffffff', 6);
+      m.x += (dx / (dist || 1)) * (crit ? 18 : 10);
+      m.y += (dy / (dist || 1)) * (crit ? 18 : 10);
+      AudioSys.sfx(crit ? 'crit' : 'hit');
+      this._burst(m.x, m.y, crit ? '#ffe14a' : '#ffffff', crit ? 14 : 6);
 
       if (m.hp <= 0) this.killMonster(i);
     }
@@ -792,13 +848,23 @@ const Game = {
     ctx.lineTo(p.x + Math.cos(fa + 0.5) * 8, p.y + Math.sin(fa + 0.5) * 8);
     ctx.stroke();
 
-    // Взмах ножа
+    // Взмах оружия (цвет и радиус зависят от выбранного)
     if (p.attackAnim > 0) {
+      const w = this.curWeapon();
       const prog = 1 - p.attackAnim / 0.18;
-      ctx.strokeStyle = 'rgba(220,235,255,' + (1 - prog) + ')';
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = w.color + (1 - prog) + ')';
+      ctx.lineWidth = w.id === 'plasma' ? 5 : 3;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r + 22, fa - 0.9 + prog * 1.2, fa - 0.3 + prog * 1.2);
+      ctx.arc(p.x, p.y, p.r + w.range - 34, fa - 1.1 + prog * 1.4, fa - 0.2 + prog * 1.4);
+      ctx.stroke();
+    }
+
+    // Ореолы баффов
+    if (p.buffSpeed > 0 || p.buffDmg > 0) {
+      ctx.strokeStyle = p.buffDmg > 0 ? 'rgba(255,160,80,0.5)' : 'rgba(120,220,255,0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r + 5 + Math.sin(this.time * 6) * 2, 0, Math.PI * 2);
       ctx.stroke();
     }
 
@@ -806,3 +872,7 @@ const Game = {
     ctx.globalAlpha = 1;
   }
 };
+
+// Top-level const не попадает в window — экспортируем явно,
+// иначе автопауза и горячие клавиши, проверяющие window.Game, не работают
+window.Game = Game;

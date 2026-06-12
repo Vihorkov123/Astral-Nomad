@@ -150,7 +150,7 @@ function check(name, cond) {
 
   // Респаун
   G.Game.respawn();
-  check('респаун на текущей звезде', G.Game.world.star.id === 0 && G.Game.player.hp === 20);
+  check('респаун на текущей звезде', G.Game.world.star.id === 0 && G.Game.player.hp === G.Game.player.maxHp);
   check('открытые сундуки не сбросились', G.Game.world.chests.filter(c => c.opened).length === 2);
 
   // Хранитель на звезде 4 (id=3): вскрываем все 5 сундуков
@@ -161,7 +161,13 @@ function check(name, cond) {
   G.Math.random = origRandom;
   check('Хранитель призван за жадность', G.Game.monsters.some(mm => mm.kind === 'guardian'));
 
+  // Открытие больших сундуков выдало второе оружие
+  check('плазменный резак получен из большого сундука', G.SaveSys.data.weapons.includes('plasma'));
+
   // Щит Хранителя: без окна уязвимости урон не проходит
+  // (нож, без критов — для точной проверки урона)
+  G.SaveSys.data.curWeapon = 'knife';
+  G.Math.random = () => 0.99;
   const boss = G.Game.monsters.find(mm => mm.kind === 'guardian');
   boss.x = G.Game.player.x + 30; boss.y = G.Game.player.y;
   G.Game.player.face = { x: 1, y: 0 };
@@ -173,6 +179,13 @@ function check(name, cond) {
   G.Game.player.attackCd = 0;
   G.Game.attack();
   check('в окно уязвимости урон проходит', boss.hp === bossHp - 2);
+  G.Math.random = () => 0.0;
+  boss.vulnT = 2;
+  G.Game.player.attackCd = 0;
+  const hpBeforeCrit = boss.hp;
+  G.Game.attack();
+  check('критический удар наносит двойной урон', boss.hp === hpBeforeCrit - 4);
+  G.Math.random = origRandom;
 
   // Убиваем босса → артефакт
   guard = 0;
@@ -212,6 +225,20 @@ function check(name, cond) {
   G.Math.random = origRandom;
   for (let i = 0; i < 300; i++) G.Game.update(1 / 60);
   check('300 кадров update без ошибок (рыцарь преследует)', G.Game.monsters.length === 1);
+
+  // Окно неуязвимости: серия атак монстра не снимает ХП каждый кадр
+  const knight = G.Game.monsters[0];
+  const pl = G.Game.player;
+  knight.x = pl.x + 5; knight.y = pl.y;
+  pl.hp = pl.maxHp; pl.inv = 0;
+  knight.attackCd = 0;
+  for (let i = 0; i < 30; i++) { knight.attackCd = 0; G.Game.update(1 / 60); }
+  check('после удара действует неуязвимость', pl.hp >= pl.maxHp - knight.dmg * 2);
+
+  // Смена оружия по Tab
+  G.SaveSys.data.curWeapon = 'knife';
+  G.Game.switchWeapon();
+  check('Tab переключает оружие', G.SaveSys.data.curWeapon === 'plasma');
 
   console.log(failed ? '\n' + failed + ' ПРОВАЛОВ' : '\nВСЕ ПРОВЕРКИ ПРОЙДЕНЫ');
   process.exit(failed ? 1 : 0);

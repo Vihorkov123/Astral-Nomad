@@ -20,6 +20,13 @@ html, body {
 #ui { position: fixed; inset: 0; pointer-events: none; }
 #ui .screen, #ui #dialog, #ui #modal { pointer-events: auto; }
 
+/* Слои: модал всегда выше экранов, иначе кнопки подтверждения перекрываются меню */
+#hud { z-index: 10; }
+.screen { z-index: 20; }
+#dialog { z-index: 50; }
+#modal { z-index: 60; }
+#toasts { z-index: 70; }
+
 .hidden { display: none !important; }
 
 /* ---------- HUD ---------- */
@@ -42,8 +49,9 @@ html, body {
   text-align: center; font-size: 13px; line-height: 20px;
   text-shadow: 0 1px 2px #000;
 }
-.res-row { margin-top: 8px; display: flex; gap: 14px; font-size: 15px; }
+.res-row { margin-top: 8px; display: flex; gap: 14px; font-size: 15px; flex-wrap: wrap; }
 .res { background: rgba(10,14,30,.7); padding: 3px 8px; border-radius: 4px; }
+#buff-row { margin-top: 6px; font-size: 13px; color: #ffe9a0; text-shadow: 0 1px 2px #000; min-height: 16px; }
 
 .hud-right { position: absolute; top: 14px; right: 18px; text-align: right; }
 #star-name { font-size: 17px; font-weight: 600; letter-spacing: 1px; text-shadow: 0 1px 3px #000; }
@@ -126,7 +134,7 @@ html, body {
   padding: 30px;
 }
 .menu-box.wide { width: min(560px, 94vw); }
-.menu-box h1 { font-size: 34px; letter-spacing: 6px; margin-bottom: 6px; color: #cdd8ff; }
+.menu-box h1 { font-size: 34px; letter-spacing: 6px; padding-left: 6px; margin-bottom: 6px; color: #cdd8ff; }
 .menu-box h2 { font-size: 24px; letter-spacing: 3px; margin-bottom: 18px; }
 .menu-box .subtitle { opacity: .7; margin-bottom: 30px; font-size: 14px; letter-spacing: 1px; }
 .menu-box p { font-size: 15px; line-height: 1.55; margin-bottom: 18px; white-space: pre-line; }

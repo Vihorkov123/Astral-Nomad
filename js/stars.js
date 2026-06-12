@@ -6,7 +6,7 @@ const BASE_STARS = [
   {
     id: 0, name: 'Ржавая пустошь', size: 30,
     small: 3, big: 0, needOpen: 2,
-    smallChance: 0.20, bigChance: 0.55,
+    smallChance: 0.30, bigChance: 0.50,
     hpMul: 1.0, dmgMul: 1.0,
     goldMul: 1.0,
     palette: { bg: '#34231d', decor: '#54341f', decor2: '#6b4a3a', obstacle: '#5d4032', obstacleEdge: '#7a5743', weather: '#d9534f', weatherName: 'красный снег' },
@@ -15,7 +15,7 @@ const BASE_STARS = [
   {
     id: 1, name: 'Цветущий могильник', size: 36,
     small: 2, big: 1, needOpen: 2,
-    smallChance: 0.25, bigChance: 0.65,
+    smallChance: 0.32, bigChance: 0.50,
     hpMul: 1.25, dmgMul: 1.2,
     goldMul: 1.4,
     palette: { bg: '#16291e', decor: '#27513a', decor2: '#d77bbf', obstacle: '#33543f', obstacleEdge: '#4c7a5b', weather: '#e8a0d8', weatherName: 'споры' },
@@ -24,7 +24,7 @@ const BASE_STARS = [
   {
     id: 2, name: 'Кровавый кристалл', size: 42,
     small: 3, big: 2, needOpen: 3,
-    smallChance: 0.30, bigChance: 0.70,
+    smallChance: 0.34, bigChance: 0.55,
     hpMul: 1.5, dmgMul: 1.5,
     goldMul: 1.8,
     palette: { bg: '#241019', decor: '#5e1f33', decor2: '#c43b5c', obstacle: '#4c1c30', obstacleEdge: '#8a2f4d', weather: '#ff7a59', weatherName: 'пепел' },
@@ -33,7 +33,7 @@ const BASE_STARS = [
   {
     id: 3, name: 'Шепчущие врата', size: 46,
     small: 3, big: 2, needOpen: 3,
-    smallChance: 0.32, bigChance: 0.72,
+    smallChance: 0.35, bigChance: 0.58,
     hpMul: 1.8, dmgMul: 1.75,
     goldMul: 2.2,
     guardian: true,
@@ -43,7 +43,7 @@ const BASE_STARS = [
   {
     id: 4, name: 'Пустота внутри', size: 38,
     small: 4, big: 0, needOpen: 0,
-    smallChance: 0.25, bigChance: 0.7,
+    smallChance: 0.30, bigChance: 0.6,
     hpMul: 1.6, dmgMul: 1.6,
     goldMul: 2.0,
     finale: true,
@@ -59,8 +59,8 @@ function genStar(i) {
     id: i, name: 'Неизвестная звезда ' + (i + 1), size: Math.min(46 + k * 2, 64),
     small: 3 + Math.min(k, 4), big: 2 + Math.min(k, 3),
     needOpen: 3 + Math.min(k, 4),
-    smallChance: Math.min(0.32 + k * 0.04, 0.6),
-    bigChance: Math.min(0.72 + k * 0.03, 0.92),
+    smallChance: Math.min(0.35 + k * 0.02, 0.5),
+    bigChance: Math.min(0.58 + k * 0.03, 0.8),
     hpMul: 1.8 + k * 0.35, dmgMul: 1.75 + k * 0.3,
     goldMul: 2.2 + k * 0.6,
     endless: true,

@@ -12,6 +12,8 @@ const SaveSys = {
       meds: 1,
       parts: 0,
       artifacts: [],        // например, «Сердце Ковчега»
+      weapons: ['knife'],   // арсенал; плазменный резак — из первого большого сундука
+      curWeapon: 'knife',
       currentStar: 0,
       maxStar: 0,           // максимальный ОТКРЫТЫЙ индекс звезды
       endless: false,       // открыто после второй концовки
@@ -36,6 +38,8 @@ const SaveSys = {
       this.data.seen = stored.seen || {};
       this.data.starState = stored.starState || {};
       this.data.artifacts = stored.artifacts || [];
+      this.data.weapons = stored.weapons && stored.weapons.length ? stored.weapons : ['knife'];
+      if (!this.data.weapons.includes(this.data.curWeapon)) this.data.curWeapon = 'knife';
     } else {
       this.data = def;
     }

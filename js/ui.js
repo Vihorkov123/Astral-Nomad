@@ -13,6 +13,7 @@ const UI = {
   init() {
     const ids = [
       'hud', 'hp-bar', 'hp-text', 'res-food', 'res-gold', 'res-meds', 'res-parts',
+      'res-weapon', 'buff-row',
       'star-name', 'star-progress', 'prompt', 'toasts',
       'dialog', 'dlg-who', 'dlg-text',
       'modal', 'modal-title', 'modal-desc', 'modal-buttons',
@@ -114,6 +115,12 @@ const UI = {
     this.els['res-gold'].textContent = d.gold;
     this.els['res-meds'].textContent = d.meds;
     this.els['res-parts'].textContent = d.parts;
+    this.els['res-weapon'].textContent = (Ents.WEAPONS[d.curWeapon] || Ents.WEAPONS.knife).short;
+
+    const buffs = [];
+    if (p.buffSpeed > 0) buffs.push('⚡ скорость ' + Math.ceil(p.buffSpeed) + ' с');
+    if (p.buffDmg > 0) buffs.push('🗡 урон ' + Math.ceil(p.buffDmg) + ' с');
+    this.els['buff-row'].textContent = buffs.join(' · ');
 
     const star = Game.star;
     if (star) {
@@ -175,7 +182,7 @@ const UI = {
         clearInterval(this.typeTimer);
         this.typing = false;
       }
-    }, 16);
+    }, 9);
     this._currentLine = line;
   },
 
@@ -274,3 +281,6 @@ const UI = {
     if (code === 'Escape' && window.Game) Game.onEscape();
   }
 };
+
+// Явный экспорт в window (top-level const не становится свойством window)
+window.UI = UI;
