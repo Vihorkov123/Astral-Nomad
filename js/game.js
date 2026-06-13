@@ -1,7 +1,7 @@
 'use strict';
 
 const ZOOM = 1.5; // приближение камеры к астронавту
-const MED_HEAL = 18;          // лечение аптечкой (сильнее сна в шлюпке)
+const MED_HEAL = 18;          // лечение аптечкой (сильнее сна в капсуле)
 const REST_HEAL = 10;         // лечение сном за 1 еду
 const CHEST_GUARD_RADIUS = 220; // нельзя вскрывать контейнер, если ближе есть дрон
 
@@ -97,6 +97,22 @@ const Game = {
       this.monsters.push(pm);
     }
 
+    // Сектор Стража: если все контейнеры вскрыты, но босс ещё жив (например,
+    // игрок погиб в бою с ним) — возвращаем один контейнер, чтобы призвать снова
+    if (this.star.guardian && !d.seen.guardianDead) {
+      const total = this.star.small + this.star.big;
+      const opened = SaveSys.starOpened(this.star.id);
+      if (opened.length >= total) {
+        const reopenId = total - 1; // последний (большой) контейнер
+        const arr = SaveSys.data.starState[this.star.id].opened;
+        const idx = arr.indexOf(reopenId);
+        if (idx >= 0) arr.splice(idx, 1);
+        const ch = this.world.chests.find(c => c.id === reopenId);
+        if (ch) ch.opened = false;
+        SaveSys.scheduleSave();
+      }
+    }
+
     UI.showScreen(null);
     UI.showHud(true);
     this._updateCamera();
@@ -154,12 +170,20 @@ const Game = {
 
   _chestTitle(type) {
     return type === 'small' ? 'Малый контейнер'
-         : type === 'big' ? 'Большой контейнер' : 'Консоль шлюпки';
+         : type === 'big' ? 'Большой контейнер' : 'Консоль капсулы';
   },
 
   // Есть ли живой дрон в радиусе r от точки (x, y)
   monstersNear(x, y, r) {
     return this.monsters.some(m => Util.dist(x, y, m.x, m.y) < r);
+  },
+
+  // Перевод позиции курсора (CSS-пиксели) в мировые координаты
+  mouseWorld() {
+    return {
+      x: this.cam.x + Input.mouse.x / ZOOM,
+      y: this.cam.y + Input.mouse.y / ZOOM
+    };
   },
 
   askOpenChest(chest) {
@@ -272,7 +296,7 @@ const Game = {
       if (star.id < lastBase || d.endless) {
         d.maxStar = star.id + 1;
         AudioSys.sfx('unlock');
-        UI.toast('Открыт новый сектор: ' + getStar(d.maxStar).name + '! (карта — у шлюпки)', 'gold');
+        UI.toast('Открыт новый сектор: ' + getStar(d.maxStar).name + '! (карта — у капсулы)', 'gold');
       }
     }
 
@@ -338,7 +362,7 @@ const Game = {
     if (first) UI.say(Story.ACT3_DEATH);
   },
 
-  // ================= Шлюпка: отдых, синтезатор, карта =================
+  // ================= Капсула: отдых, синтезатор, карта =================
 
   capsuleMenu() {
     const d = SaveSys.data;
@@ -351,7 +375,7 @@ const Game = {
         this.player.hp = Math.min(this.player.maxHp, this.player.hp + REST_HEAL);
         if (this.monsters.length) {
           this.monsters = [];
-          UI.toast('Дроны отступили от шлюпки', 'danger');
+          UI.toast('Дроны отступили от капсулы', 'danger');
         }
         AudioSys.sfx('heal');
         this.lowHpWarned = false;
@@ -361,7 +385,7 @@ const Game = {
     opts.push({ label: 'Магазин', cb: () => this.openShop() });
     opts.push({ label: 'Карта секторов', cb: () => this.openStarMap() });
     opts.push({ label: 'Отмена' });
-    UI.modal('Шлюпка', 'Сон, магазин и карта секторов.', opts);
+    UI.modal('Капсула', 'Сон, магазин и карта секторов.', opts);
   },
 
   SHOP_ITEMS: [
@@ -458,6 +482,14 @@ const Game = {
     }
     collideWorld(p, this.world);
 
+    // Прицел мышью: если игрок пользуется мышью, герой смотрит на курсор
+    if (Input.mouse.active) {
+      const mw = this.mouseWorld();
+      const dx = mw.x - p.x, dy = mw.y - p.y;
+      const L = Math.hypot(dx, dy);
+      if (L > 0.001) { p.face.x = dx / L; p.face.y = dy / L; }
+    }
+
     if (Input.wasPressed('Tab')) this.switchWeapon();
 
     if (Input.wasPressed('Space') && p.dashCd <= 0) {
@@ -498,7 +530,7 @@ const Game = {
     }
     if (!target && Util.dist(p.x, p.y, this.world.capsule.x, this.world.capsule.y) < 60) {
       target = { kind: 'capsule' };
-      prompt = 'E — шлюпка (сон / магазин / карта)';
+      prompt = 'E — капсула (сон / магазин / карта)';
     }
     UI.setPrompt(prompt);
 
@@ -514,6 +546,9 @@ const Game = {
       else if (target && target.kind === 'capsule') this.capsuleMenu();
       else this.attack();
     }
+
+    // Удар по ЛКМ (направление — по курсу мыши)
+    if (Input.mouse.pressedLeft) this.attack();
 
     // --- Монстры ---
     for (let i = this.monsters.length - 1; i >= 0; i--) {
@@ -543,7 +578,7 @@ const Game = {
         this._burst(p.x, p.y, '#e84a5f', 8);
         if (p.hp / p.maxHp < 0.3 && !this.lowHpWarned) {
           this.lowHpWarned = true;
-          UI.toast('Здоровье на исходе! Отступи к шлюпке.', 'danger');
+          UI.toast('Здоровье на исходе! Отступи к капсуле.', 'danger');
         }
         if (p.hp <= 0) { this.die(); return; }
       }
@@ -575,17 +610,19 @@ const Game = {
     p.attackAnim = 0.18;
     AudioSys.sfx(w.id === 'plasma' ? 'plasma' : 'knife');
 
-    // Автоприцел: разворачиваемся к ближайшему монстру в радиусе —
-    // не нужно «драться в развороте», догоняющий враг бьётся сразу
-    let nearest = null, nd = Infinity;
-    for (const m of this.monsters) {
-      const d = Util.dist(p.x, p.y, m.x, m.y) - m.r;
-      if (d <= w.range && d < nd) { nd = d; nearest = m; }
-    }
-    if (nearest) {
-      const dx = nearest.x - p.x, dy = nearest.y - p.y;
-      const L = Math.hypot(dx, dy) || 1;
-      p.face.x = dx / L; p.face.y = dy / L;
+    // Автоприцел только для клавиатуры: разворот к ближайшему монстру, чтобы
+    // не «драться в развороте». При игре мышью направление задаёт курсор.
+    if (!Input.mouse.active) {
+      let nearest = null, nd = Infinity;
+      for (const m of this.monsters) {
+        const d = Util.dist(p.x, p.y, m.x, m.y) - m.r;
+        if (d <= w.range && d < nd) { nd = d; nearest = m; }
+      }
+      if (nearest) {
+        const dx = nearest.x - p.x, dy = nearest.y - p.y;
+        const L = Math.hypot(dx, dy) || 1;
+        p.face.x = dx / L; p.face.y = dy / L;
+      }
     }
 
     for (let i = this.monsters.length - 1; i >= 0; i--) {

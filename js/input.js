@@ -4,6 +4,8 @@
 const Input = {
   down: {},
   pressed: {},
+  // Мышь: позиция в CSS-пикселях, состояние ЛКМ, флаг «игрок использует мышь»
+  mouse: { x: 0, y: 0, downLeft: false, pressedLeft: false, active: false },
 
   init() {
     window.addEventListener('keydown', e => {
@@ -19,13 +21,38 @@ const Input = {
 
     window.addEventListener('keyup', e => { this.down[e.code] = false; });
 
-    // При потере фокуса сбрасываем зажатые клавиши, чтобы герой не «бежал сам»
-    window.addEventListener('blur', () => { this.down = {}; this.pressed = {}; });
+    // При потере фокуса сбрасываем зажатые клавиши/кнопки, чтобы герой не «бежал сам»
+    window.addEventListener('blur', () => {
+      this.down = {}; this.pressed = {};
+      this.mouse.downLeft = false; this.mouse.pressedLeft = false;
+    });
+
+    // --- Мышь ---
+    const canvas = document.getElementById('game');
+    const setPos = e => {
+      const r = canvas.getBoundingClientRect();
+      this.mouse.x = e.clientX - r.left;
+      this.mouse.y = e.clientY - r.top;
+      this.mouse.active = true; // как только игрок двинул мышь — целимся по ней
+    };
+    canvas.addEventListener('mousemove', setPos);
+    canvas.addEventListener('mousedown', e => {
+      setPos(e);
+      if (e.button === 0) {
+        if (!this.mouse.downLeft) this.mouse.pressedLeft = true;
+        this.mouse.downLeft = true;
+      }
+    });
+    window.addEventListener('mouseup', e => {
+      if (e.button === 0) this.mouse.downLeft = false;
+    });
+    // Правый клик не должен открывать контекстное меню поверх игры
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
   },
 
   isDown(code) { return !!this.down[code]; },
   wasPressed(code) { return !!this.pressed[code]; },
-  endFrame() { this.pressed = {}; },
+  endFrame() { this.pressed = {}; this.mouse.pressedLeft = false; },
 
   axis() {
     let x = 0, y = 0;

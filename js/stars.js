@@ -11,7 +11,7 @@ const BASE_STARS = [
     hpMul: 1.0, dmgMul: 1.0,
     goldMul: 1.0,
     palette: { bg: '#34231d', decor: '#54341f', decor2: '#6b4a3a', obstacle: '#5d4032', obstacleEdge: '#7a5743', weather: '#d9534f', weatherName: 'ржавая пыль' },
-    desc: 'Обломки шлюпки и первые контейнеры снабжения.'
+    desc: 'Обломки капсулы и первые контейнеры снабжения.'
   },
   {
     id: 1, name: 'Заросший каньон', size: 40,
@@ -49,7 +49,7 @@ const BASE_STARS = [
     goldMul: 2.0,
     finale: true,
     palette: { bg: '#04050c', decor: '#101630', decor2: '#aab6ff', obstacle: '#11142a', obstacleEdge: '#2c3260', weather: '#ffffff', weatherName: 'звёзды' },
-    desc: 'Собранная шлюпка ждёт. Финальное решение.'
+    desc: 'Собранная капсула ждёт. Финальное решение.'
   }
 ];
 

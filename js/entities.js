@@ -5,7 +5,7 @@ const Ents = {
   // Оружие: arc — минимальный косинус угла до цели (меньше = шире взмах)
   WEAPONS: {
     knife:  { id: 'knife',  name: 'Нож',              short: '🔪 Нож',   dmg: 2, range: 56, arc: 0.15, cd: 0.4,  color: 'rgba(220,235,255,' },
-    plasma: { id: 'plasma', name: 'Плазменный резак', short: '⚡ Резак', dmg: 4, range: 78, arc: -0.2, cd: 0.75, color: 'rgba(110,230,255,' }
+    plasma: { id: 'plasma', name: 'Плазменный резак', short: '⚡ Резак', dmg: 7, range: 82, arc: -0.2, cd: 0.7, color: 'rgba(110,230,255,' }
   },
 
   CRIT_CHANCE: 0.15,

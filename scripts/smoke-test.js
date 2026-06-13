@@ -238,6 +238,25 @@ function check(name, cond) {
   }
   check('Страж повержен, ядро получено', G.SaveSys.data.artifacts.includes('Ядро Стража'));
 
+  // Урон плазменного резака усилен
+  check('резак бьёт сильнее ножа', G.Ents.WEAPONS.plasma.dmg >= 7 &&
+    G.Ents.WEAPONS.plasma.dmg > G.Ents.WEAPONS.knife.dmg);
+
+  // Пере-призыв босса: смерть → все контейнеры вскрыты, но босс жив →
+  // при входе на сектор один контейнер возвращается, чтобы призвать снова
+  G.SaveSys.data.seen.guardianDead = false;
+  G.SaveSys.data.maxStar = 3;
+  G.Game.travelTo(3);
+  const reopened = G.Game.world.chests.filter(c => !c.opened);
+  check('после смерти на боссе один контейнер возвращён', reopened.length === 1);
+  G.Math.random = () => 0.99; // без рядовой охраны
+  G.Game.monsters = [];
+  G.Game.openChest(reopened[0]);
+  G.Math.random = origRandom;
+  check('повторное вскрытие снова призывает Стража',
+    G.Game.monsters.some(mm => mm.kind === 'guardian'));
+  G.SaveSys.data.seen.guardianDead = true;
+
   // Магазин: покупка за лом
   G.SaveSys.data.gold = 50;
   const foodBefore = G.SaveSys.data.food;
