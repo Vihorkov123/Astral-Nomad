@@ -1,6 +1,9 @@
 'use strict';
 
 const ZOOM = 1.5; // приближение камеры к астронавту
+const MED_HEAL = 18;          // лечение аптечкой (сильнее сна в шлюпке)
+const REST_HEAL = 10;         // лечение сном за 1 еду
+const CHEST_GUARD_RADIUS = 220; // нельзя вскрывать контейнер, если ближе есть дрон
 
 const Game = {
   state: 'menu',          // 'menu' | 'play'
@@ -154,6 +157,11 @@ const Game = {
          : type === 'big' ? 'Большой контейнер' : 'Консоль шлюпки';
   },
 
+  // Есть ли живой дрон в радиусе r от точки (x, y)
+  monstersNear(x, y, r) {
+    return this.monsters.some(m => Util.dist(x, y, m.x, m.y) < r);
+  },
+
   askOpenChest(chest) {
     const star = this.star;
     if (chest.type === 'final') { this.finaleChoice(); return; }
@@ -216,7 +224,7 @@ const Game = {
     const k = riskBonus ? 1.5 : 1;
 
     let gold = Math.round((isBig ? 12 + Math.random() * 10 : 3 + Math.random() * 5) * star.goldMul * k);
-    let food = isBig ? 1 + (Math.random() < 0.5 ? 1 : 0) : (Math.random() < 0.6 ? 1 : 0);
+    let food = isBig ? 2 + Math.floor(Math.random() * 2) : 1 + (Math.random() < 0.5 ? 1 : 0);
     let meds = isBig ? 1 : (Math.random() < 0.12 ? 1 : 0);
     let parts = isBig ? 1 : (riskBonus && Math.random() < 0.25 ? 1 : 0);
 
@@ -225,25 +233,28 @@ const Game = {
     AudioSys.sfx('loot');
     AudioSys.sfx('gold');
     this._burst(chest.x, chest.y, '#ffe9a0', 14);
-    let msg = '+' + gold + ' лома, +' + food + ' еды';
-    if (meds) msg += ', +' + meds + ' аптечка';
-    if (parts) msg += ', +' + parts + ' энергоячейка';
-    UI.toast(msg, 'gold');
+    // В тост попадают только реально выпавшие ресурсы (без «+0 …»)
+    const parts_msg = [];
+    if (gold) parts_msg.push('+' + gold + ' лома');
+    if (food) parts_msg.push('+' + food + ' еды');
+    if (meds) parts_msg.push('+' + meds + ' аптечка');
+    if (parts) parts_msg.push('+' + parts + ' энергоячейка');
+    if (parts_msg.length) UI.toast(parts_msg.join(', '), 'gold');
 
-    // Первый большой сундук дарит второе оружие
+    // Первый большой контейнер даёт второе оружие
     if (isBig && !d.weapons.includes('plasma')) {
       d.weapons.push('plasma');
       d.curWeapon = 'plasma';
-      UI.toast('Новое оружие: «Плазменный резак»! (Tab — смена)', 'gold');
+      UI.toast('Новое оружие: плазменный резак (Tab — смена)', 'gold');
       AudioSys.sfx('unlock');
     } else if (this.player && Math.random() < (isBig ? 0.35 : 0.15)) {
-      // Временный бафф из сундука
+      // Временный бафф из контейнера
       if (Math.random() < 0.5) {
         this.player.buffSpeed = 20;
-        UI.toast('Стимулятор: +40% скорости на 20 с', 'gold');
+        UI.toast('Ускорение +40% на 20 с', 'gold');
       } else {
         this.player.buffDmg = 20;
-        UI.toast('Боевой стимулятор: +50% урона на 20 с', 'gold');
+        UI.toast('Урон +50% на 20 с', 'gold');
       }
       AudioSys.sfx('heal');
     }
@@ -333,45 +344,41 @@ const Game = {
     const d = SaveSys.data;
     const opts = [];
     opts.push({
-      label: 'Отдых (−1 еда, +10 ОЗ)',
+      label: 'Сон (−1 еда, +' + REST_HEAL + ' ОЗ)',
       cb: () => {
-        if (d.food < 1) { UI.toast('Нет еды для отдыха!', 'danger'); return; }
+        if (d.food < 1) { UI.toast('Нет еды для сна', 'danger'); return; }
         d.food -= 1;
-        this.player.hp = Math.min(this.player.maxHp, this.player.hp + 10);
+        this.player.hp = Math.min(this.player.maxHp, this.player.hp + REST_HEAL);
         if (this.monsters.length) {
-          // Отступление: дроны уходят, удержанный ими лут потерян
           this.monsters = [];
-          UI.toast('Дроны отступили от шлюпки. Их добыча потеряна.', 'danger');
+          UI.toast('Дроны отступили от шлюпки', 'danger');
         }
         AudioSys.sfx('heal');
         this.lowHpWarned = false;
         SaveSys.scheduleSave();
       }
     });
-    opts.push({ label: 'Синтезатор (припасы за лом)', cb: () => this.openShop() });
+    opts.push({ label: 'Магазин', cb: () => this.openShop() });
     opts.push({ label: 'Карта секторов', cb: () => this.openStarMap() });
     opts.push({ label: 'Отмена' });
-    UI.modal('Аварийная шлюпка', 'Поле шлюпки отпугивает дронов. Отдых, синтез припасов и карта секторов.', opts);
+    UI.modal('Шлюпка', 'Сон, магазин и карта секторов.', opts);
   },
 
   SHOP_ITEMS: [
-    { name: 'Еда ×2', cost: 25, apply(d) { d.food += 2; } },
-    { name: 'Аптечка', cost: 40, apply(d) { d.meds += 1; } },
-    { name: 'Стимулятор (случайный бафф)', cost: 35, apply(d, g) {
-        if (!g.player) return;
-        if (Math.random() < 0.5) { g.player.buffSpeed = 25; UI.toast('+40% скорости на 25 с', 'gold'); }
-        else { g.player.buffDmg = 25; UI.toast('+50% урона на 25 с', 'gold'); }
-      } }
+    { name: 'Еда +2', cost: 25, apply(d) { d.food += 2; } },
+    { name: 'Аптечка +' + MED_HEAL + ' ОЗ', cost: 45, apply(d) { d.meds += 1; } },
+    { name: 'Ускорение +40% на 25 с', cost: 30, apply(d, g) { if (g.player) g.player.buffSpeed = 25; } },
+    { name: 'Урон +50% на 25 с', cost: 30, apply(d, g) { if (g.player) g.player.buffDmg = 25; } }
   ],
 
   buyShopItem(i) {
     const d = SaveSys.data;
     const it = this.SHOP_ITEMS[i];
-    if (d.gold < it.cost) { UI.toast('Не хватает лома!', 'danger'); return false; }
+    if (d.gold < it.cost) { UI.toast('Не хватает лома', 'danger'); return false; }
     d.gold -= it.cost;
     it.apply(d, this);
     AudioSys.sfx('gold');
-    UI.toast(it.name + ' — синтезировано');
+    UI.toast('Куплено: ' + it.name);
     SaveSys.scheduleSave();
     return true;
   },
@@ -379,11 +386,11 @@ const Game = {
   openShop() {
     const d = SaveSys.data;
     const opts = this.SHOP_ITEMS.map((it, i) => ({
-      label: it.name + ' — ' + it.cost + ' 🔩',
+      label: it.name + ' — ' + it.cost + ' лома',
       cb: () => { this.buyShopItem(i); this.openShop(); } // окно остаётся: удобно брать несколько
     }));
     opts.push({ label: 'Закрыть' });
-    UI.modal('СИНТЕЗАТОР', 'ЭХО перерабатывает лом в припасы.\nЛом: ' + d.gold + ' 🔩', opts);
+    UI.modal('Магазин', 'Лом: ' + d.gold, opts);
   },
 
   // ================= Обновление =================
@@ -469,9 +476,9 @@ const Game = {
       const d = SaveSys.data;
       if (d.meds > 0 && p.hp < p.maxHp) {
         d.meds -= 1;
-        p.hp = Math.min(p.maxHp, p.hp + 8);
+        p.hp = Math.min(p.maxHp, p.hp + MED_HEAL);
         AudioSys.sfx('heal');
-        UI.toast('Инъекция: +8 ОЗ');
+        UI.toast('Аптечка: +' + MED_HEAL + ' ОЗ');
         SaveSys.scheduleSave();
       }
     }
@@ -481,19 +488,29 @@ const Game = {
     let target = null;
     for (const c of this.world.chests) {
       if (!c.opened && Util.dist(p.x, p.y, c.x, c.y) < 48) {
-        target = { kind: 'chest', c };
-        prompt = 'E — вскрыть: ' + this._chestTitle(c.type).toLowerCase();
+        const blocked = this.monstersNear(c.x, c.y, CHEST_GUARD_RADIUS);
+        target = { kind: 'chest', c, blocked };
+        prompt = blocked
+          ? 'Рядом дроны — сначала зачисти'
+          : 'E — вскрыть: ' + this._chestTitle(c.type).toLowerCase();
         break;
       }
     }
     if (!target && Util.dist(p.x, p.y, this.world.capsule.x, this.world.capsule.y) < 60) {
       target = { kind: 'capsule' };
-      prompt = 'E — шлюпка (отдых / синтезатор / карта)';
+      prompt = 'E — шлюпка (сон / магазин / карта)';
     }
     UI.setPrompt(prompt);
 
     if (Input.wasPressed('KeyE')) {
-      if (target && target.kind === 'chest') this.askOpenChest(target.c);
+      if (target && target.kind === 'chest') {
+        if (target.blocked) {
+          UI.toast('Сначала уничтожь дронов рядом', 'danger');
+          AudioSys.sfx('hit');
+        } else {
+          this.askOpenChest(target.c);
+        }
+      }
       else if (target && target.kind === 'capsule') this.capsuleMenu();
       else this.attack();
     }

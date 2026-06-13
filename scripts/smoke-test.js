@@ -238,13 +238,37 @@ function check(name, cond) {
   }
   check('Страж повержен, ядро получено', G.SaveSys.data.artifacts.includes('Ядро Стража'));
 
-  // Магазин-синтезатор: покупка за лом
+  // Магазин: покупка за лом
   G.SaveSys.data.gold = 50;
   const foodBefore = G.SaveSys.data.food;
   check('покупка еды за лом', G.Game.buyShopItem(0) === true &&
     G.SaveSys.data.food === foodBefore + 2 && G.SaveSys.data.gold === 25);
   G.SaveSys.data.gold = 5;
   check('покупка не проходит без лома', G.Game.buyShopItem(1) === false && G.SaveSys.data.gold === 5);
+  // Аптечка из магазина даёт заряд лечения
+  G.SaveSys.data.gold = 45;
+  const medsBefore = G.SaveSys.data.meds;
+  check('покупка аптечки за 45 лома', G.Game.buyShopItem(1) === true &&
+    G.SaveSys.data.meds === medsBefore + 1 && G.SaveSys.data.gold === 0);
+
+  // monstersNear: контейнер нельзя вскрыть рядом с дроном
+  G.Game.travelTo(0);
+  const ch = G.Game.world.chests.find(c => !c.opened);
+  G.Game.monsters = [G.Ents.makeMonster('bug', ch.x + 50, ch.y, G.Game.star, null)];
+  check('дрон рядом блокирует вскрытие', G.Game.monstersNear(ch.x, ch.y, 220) === true);
+  G.Game.monsters = [G.Ents.makeMonster('bug', ch.x + 999, ch.y, G.Game.star, null)];
+  check('дрон вдали не блокирует вскрытие', G.Game.monstersNear(ch.x, ch.y, 220) === false);
+  G.Game.monsters = [];
+
+  // Еда в контейнере: малый даёт минимум 1, большой минимум 2
+  G.Math.random = () => 0; // нет охраны, минимальные роллы
+  let fb = G.SaveSys.data.food;
+  G.Game.grantLoot({ type: 'small', x: 0, y: 0 }, false);
+  check('малый контейнер даёт еду (≥1)', G.SaveSys.data.food - fb >= 1);
+  fb = G.SaveSys.data.food;
+  G.Game.grantLoot({ type: 'big', x: 0, y: 0 }, false);
+  check('большой контейнер даёт еду (≥2)', G.SaveSys.data.food - fb >= 2);
+  G.Math.random = origRandom;
 
   // Финал: концовка 2 открывает бесконечные звёзды
   G.SaveSys.data.maxStar = 4;
