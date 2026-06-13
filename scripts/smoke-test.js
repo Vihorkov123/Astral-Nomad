@@ -85,7 +85,7 @@ function check(name, cond) {
   const G = sandbox;
 
   await vm.runInContext('SaveSys.load()', sandbox);
-  check('сейв создан по умолчанию', G.SaveSys.data && G.SaveSys.data.food === 5);
+  check('сейв создан по умолчанию', G.SaveSys.data && G.SaveSys.data.food === 4);
 
   // Полёт на звезду 1
   G.Game.travelTo(0);
@@ -101,9 +101,24 @@ function check(name, cond) {
   const c2 = G.Game.world.chests.map(c => c.x + ',' + c.y).join('|');
   check('карта детерминирована между визитами', c1 === c2);
 
+  // Патруль: бродит, агрится при приближении, атакует рывком
+  const origRandom = G.Math.random;
+  const patrol = G.Game.monsters.find(mm => mm.patrol);
+  check('патруль заспавнился на секторе', !!patrol && G.Game.monsters.length === 1);
+  patrol.x = G.Game.player.x + 150; patrol.y = G.Game.player.y;
+  patrol.aggro = false;
+  G.Game.update(1 / 60);
+  check('патруль агрится при приближении', patrol.aggro === true);
+  patrol.x = G.Game.player.x + 100; patrol.y = G.Game.player.y;
+  patrol.lungeCd = 0; G.Game.player.inv = 0;
+  const hpB = G.Game.player.hp;
+  for (let i = 0; i < 60 && G.Game.player.hp === hpB; i++) G.Game.update(1 / 60);
+  check('дрон-жало атакует рывком-укусом', G.Game.player.hp === hpB - patrol.dmg);
+  G.Game.monsters = [];
+  G.Game.player.hp = G.Game.player.maxHp;
+
   // Сундук без монстра (форсируем)
   const chest = G.Game.world.chests[0];
-  const origRandom = G.Math.random;
   G.Math.random = () => 0.99; // > шанс монстра → безопасно
   const goldBefore = G.SaveSys.data.gold;
   G.Game.openChest(chest);
@@ -116,22 +131,24 @@ function check(name, cond) {
   G.Math.random = () => 0.0;
   G.Game.openChest(chest2);
   G.Math.random = origRandom;
-  check('монстр заспавнился из сундука', G.Game.monsters.length === 1 && G.Game.monsters[0].kind === 'bug');
-  check('лут удержан монстром', G.Game.monsters[0].lootChest === chest2);
+  const guardM = G.Game.monsters.find(mm => mm.lootChest === chest2);
+  check('охрана появилась из контейнера', !!guardM && guardM.kind === 'bug');
+  check('лут удержан охраной', guardM.lootChest === chest2);
 
   // Бой: ставим монстра перед игроком и бьём ножом
-  const m = G.Game.monsters[0];
+  const m = guardM;
   const p = G.Game.player;
   m.x = p.x + 25; m.y = p.y;
   p.face = { x: 1, y: 0 };
   const goldBeforeKill = G.SaveSys.data.gold;
   let guard = 0;
-  while (G.Game.monsters.length && guard++ < 20) {
+  while (G.Game.monsters.includes(m) && guard++ < 30) {
     p.attackCd = 0;
     m.x = p.x + 25; m.y = p.y;
+    p.face = { x: 1, y: 0 };
     G.Game.attack();
   }
-  check('монстр убит ножом', G.Game.monsters.length === 0);
+  check('охранник убит ножом', !G.Game.monsters.includes(m));
   check('награда за риск выдана после боя', G.SaveSys.data.gold > goldBeforeKill);
 
   // Прогрессия: needOpen=4 — вскрываем ещё два контейнера безопасно
@@ -157,8 +174,16 @@ function check(name, cond) {
   check('респаун на текущей звезде', G.Game.world.star.id === 0 && G.Game.player.hp === G.Game.player.maxHp);
   check('открытые контейнеры не сбросились', G.Game.world.chests.filter(c => c.opened).length === 4);
 
-  // Хранитель на звезде 4 (id=3): вскрываем все 5 сундуков
+  // Двойная охрана из больших контейнеров на поздних секторах
   G.SaveSys.data.maxStar = 3;
+  G.Game.travelTo(2);
+  const beforeCount = G.Game.monsters.length;
+  G.Math.random = () => 0.0;
+  G.Game.openChest(G.Game.world.chests.find(c => c.type === 'big' && !c.opened));
+  G.Math.random = origRandom;
+  check('большой контейнер выпускает двух охранников', G.Game.monsters.length === beforeCount + 2);
+
+  // Страж Ядра: вскрываем все контейнеры Древнего комплекса
   G.Game.travelTo(3);
   G.Math.random = () => 0.99;
   for (const c of G.Game.world.chests) G.Game.openChest(c);
@@ -217,7 +242,7 @@ function check(name, cond) {
   G.SaveSys.data.gold = 50;
   const foodBefore = G.SaveSys.data.food;
   check('покупка еды за лом', G.Game.buyShopItem(0) === true &&
-    G.SaveSys.data.food === foodBefore + 3 && G.SaveSys.data.gold === 35);
+    G.SaveSys.data.food === foodBefore + 2 && G.SaveSys.data.gold === 25);
   G.SaveSys.data.gold = 5;
   check('покупка не проходит без лома', G.Game.buyShopItem(1) === false && G.SaveSys.data.gold === 5);
 
@@ -247,17 +272,20 @@ function check(name, cond) {
   G.Math.random = () => 0.0;
   G.Game.openChest(G.Game.world.chests.find(c => c.type === 'big'));
   G.Math.random = origRandom;
+  G.Game.player.inv = 999; // патрули не должны убить игрока за время прогона
   for (let i = 0; i < 300; i++) G.Game.update(1 / 60);
-  check('300 кадров update без ошибок (рыцарь преследует)', G.Game.monsters.length === 1);
+  check('300 кадров update без ошибок (страж преследует)',
+    G.Game.monsters.some(mm => mm.kind === 'knight' && mm.lootChest));
 
-  // Окно неуязвимости: серия атак монстра не снимает ХП каждый кадр
-  const knight = G.Game.monsters[0];
+  // Тяжёлый страж: замах → удар по площади, один удар за цикл
+  G.Game.monsters = G.Game.monsters.filter(mm => !mm.patrol);
+  const knightM = G.Game.monsters.find(mm => mm.kind === 'knight');
   const pl = G.Game.player;
-  knight.x = pl.x + 5; knight.y = pl.y;
+  knightM.smashCd = 0; knightM.windupT = 0;
   pl.hp = pl.maxHp; pl.inv = 0;
-  knight.attackCd = 0;
-  for (let i = 0; i < 30; i++) { knight.attackCd = 0; G.Game.update(1 / 60); }
-  check('после удара действует неуязвимость', pl.hp >= pl.maxHp - knight.dmg * 2);
+  for (let i = 0; i < 90; i++) { knightM.x = pl.x + 30; knightM.y = pl.y; G.Game.update(1 / 60); }
+  check('страж бьёт по площади после замаха (один удар за цикл)',
+    pl.hp === pl.maxHp - knightM.dmg);
 
   // Смена оружия по Tab
   G.SaveSys.data.curWeapon = 'knife';

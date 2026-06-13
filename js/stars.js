@@ -6,7 +6,7 @@
 const BASE_STARS = [
   {
     id: 0, name: 'Место крушения', size: 34,
-    small: 5, big: 0, needOpen: 4,
+    small: 5, big: 0, needOpen: 4, patrols: 1,
     smallChance: 0.30, bigChance: 0.50,
     hpMul: 1.0, dmgMul: 1.0,
     goldMul: 1.0,
@@ -15,27 +15,27 @@ const BASE_STARS = [
   },
   {
     id: 1, name: 'Заросший каньон', size: 40,
-    small: 4, big: 2, needOpen: 5,
+    small: 4, big: 2, needOpen: 5, patrols: 2,
     smallChance: 0.32, bigChance: 0.50,
-    hpMul: 1.25, dmgMul: 1.2,
+    hpMul: 1.35, dmgMul: 1.3,
     goldMul: 1.4,
     palette: { bg: '#16291e', decor: '#27513a', decor2: '#d77bbf', obstacle: '#33543f', obstacleEdge: '#4c7a5b', weather: '#e8a0d8', weatherName: 'споры' },
     desc: 'Густая растительность. В больших контейнерах — энергоячейки.'
   },
   {
     id: 2, name: 'Кристальный разлом', size: 46,
-    small: 5, big: 2, needOpen: 6,
+    small: 5, big: 2, needOpen: 6, patrols: 3,
     smallChance: 0.34, bigChance: 0.55,
-    hpMul: 1.5, dmgMul: 1.5,
+    hpMul: 1.7, dmgMul: 1.6,
     goldMul: 1.8,
     palette: { bg: '#241019', decor: '#5e1f33', decor2: '#c43b5c', obstacle: '#4c1c30', obstacleEdge: '#8a2f4d', weather: '#ff7a59', weatherName: 'искры' },
     desc: 'Пещеры из кристаллов. Охранных дронов больше.'
   },
   {
     id: 3, name: 'Древний комплекс', size: 52,
-    small: 5, big: 3, needOpen: 7,
+    small: 5, big: 3, needOpen: 7, patrols: 4,
     smallChance: 0.35, bigChance: 0.58,
-    hpMul: 1.8, dmgMul: 1.75,
+    hpMul: 2.0, dmgMul: 1.9,
     goldMul: 2.2,
     guardian: true,
     palette: { bg: '#141729', decor: '#2c3260', decor2: '#7e89e8', obstacle: '#2a2f58', obstacleEdge: '#4a5290', weather: '#9fb0ff', weatherName: 'туман' },
@@ -43,9 +43,9 @@ const BASE_STARS = [
   },
   {
     id: 4, name: 'Точка старта', size: 38,
-    small: 4, big: 0, needOpen: 0,
+    small: 4, big: 0, needOpen: 0, patrols: 2,
     smallChance: 0.30, bigChance: 0.6,
-    hpMul: 1.6, dmgMul: 1.6,
+    hpMul: 1.8, dmgMul: 1.7,
     goldMul: 2.0,
     finale: true,
     palette: { bg: '#04050c', decor: '#101630', decor2: '#aab6ff', obstacle: '#11142a', obstacleEdge: '#2c3260', weather: '#ffffff', weatherName: 'звёзды' },
@@ -59,10 +59,10 @@ function genStar(i) {
   return {
     id: i, name: 'Дальний сектор ' + k, size: Math.min(50 + k * 2, 64),
     small: 5 + Math.min(k, 3), big: 3 + Math.min(k, 2),
-    needOpen: 6 + Math.min(k, 4),
+    needOpen: 6 + Math.min(k, 4), patrols: 4 + Math.min(k, 3),
     smallChance: Math.min(0.35 + k * 0.02, 0.5),
     bigChance: Math.min(0.58 + k * 0.03, 0.8),
-    hpMul: 1.8 + k * 0.35, dmgMul: 1.75 + k * 0.3,
+    hpMul: 2.0 + k * 0.35, dmgMul: 1.9 + k * 0.3,
     goldMul: 2.2 + k * 0.6,
     endless: true,
     palette: {

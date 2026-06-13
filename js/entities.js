@@ -26,9 +26,9 @@ const Ents = {
 
   // База монстров; множители звезды применяются при спавне
   MONSTER_BASE: {
-    bug:      { r: 10, hp: 6,  dmg: 2, speed: 170, attackCd: 0.8, color: '#e8c84a', color2: '#9a7510' },
-    knight:   { r: 17, hp: 16, dmg: 4, speed: 70,  attackCd: 1.4, color: '#7a9a6a', color2: '#3d5232' },
-    guardian: { r: 26, hp: 30, dmg: 7, speed: 62,  attackCd: 1.5, color: '#2b2f4a', color2: '#8a93e8' }
+    bug:      { r: 10, hp: 8,  dmg: 3, speed: 185, attackCd: 0.8, color: '#e8c84a', color2: '#9a7510' },
+    knight:   { r: 17, hp: 22, dmg: 5, speed: 75,  attackCd: 1.4, color: '#7a9a6a', color2: '#3d5232' },
+    guardian: { r: 26, hp: 36, dmg: 8, speed: 62,  attackCd: 1.5, color: '#2b2f4a', color2: '#8a93e8' }
   },
 
   makeMonster(kind, x, y, star, lootChest) {
@@ -45,8 +45,14 @@ const Ents = {
       lootChest: lootChest || null,
       loseT: 0,                 // после рывка игрока цель потеряна
       wanderA: Math.random() * Math.PI * 2,
-      // Страж Ядра: замах → удар по площади → перезарядка (уязвим)
-      windupT: 0, slamCd: 2, slamR: 95, vulnT: 0,
+      patrol: false, aggro: true, homeX: x, homeY: y, // патрули бродят, пока не заметят игрока
+      // Телеграфированные атаки: у всех мобов, как у босса
+      // bug: рывок-укус; knight: замах → удар по площади; guardian: то же, но больше
+      windupT: 0, windupMax: kind === 'knight' ? 0.6 : 0.9,
+      slamCd: 2, smashCd: 1,
+      slamR: kind === 'guardian' ? 95 : (kind === 'knight' ? 58 : 0),
+      vulnT: 0,
+      lungeT: 0, lungeCd: 1, lungeHit: false, lungeDir: { x: 0, y: 1 },
       hitFlash: 0,
       face: { x: 0, y: 1 }
     };
@@ -75,8 +81,47 @@ const Ents = {
         m.face.x = dx / dist; m.face.y = dy / dist;
       }
       collideWorld(m, world);
-      if (m.slamCd <= 0 && dist < 130) m.windupT = 0.9;
+      if (m.slamCd <= 0 && dist < 130) m.windupT = m.windupMax;
       return null;
+    }
+
+    // --- Патруль: дрейфует у своей точки, пока игрок не подойдёт ---
+    if (m.patrol && !m.aggro) {
+      m.wanderA += (Math.random() - 0.5) * 2 * dt;
+      const hx = m.homeX - m.x, hy = m.homeY - m.y;
+      m.x += (Math.cos(m.wanderA) * m.speed * 0.35 + hx * 0.2) * dt;
+      m.y += (Math.sin(m.wanderA) * m.speed * 0.35 + hy * 0.2) * dt;
+      collideWorld(m, world);
+      if (dist < 180) { m.aggro = true; return 'aggro'; }
+      return null;
+    }
+
+    // --- Тяжёлый страж: замах → удар по площади (мини-версия босса) ---
+    if (m.kind === 'knight') {
+      if (m.windupT > 0) {
+        m.windupT -= dt;
+        if (m.windupT <= 0) { m.smashCd = 2.2; return 'slam'; }
+        return null; // стоит и замахивается — окно, чтобы отбежать
+      }
+      m.smashCd -= dt;
+    }
+
+    // --- Дрон-жало: рывок-укус с разгона ---
+    if (m.kind === 'bug') {
+      if (m.lungeT > 0) {
+        m.lungeT -= dt;
+        m.x += m.lungeDir.x * 400 * dt;
+        m.y += m.lungeDir.y * 400 * dt;
+        collideWorld(m, world);
+        if (!m.lungeHit && dist < m.r + player.r + 4) { m.lungeHit = true; return 'attack'; }
+        return null;
+      }
+      m.lungeCd -= dt;
+      if (m.loseT <= 0 && m.lungeCd <= 0 && dist < 170 && dist > 40) {
+        m.lungeT = 0.35; m.lungeCd = 2.0; m.lungeHit = false;
+        m.lungeDir = { x: dx / dist, y: dy / dist };
+        return 'lunge';
+      }
     }
 
     if (m.loseT > 0) {
@@ -92,8 +137,14 @@ const Ents = {
 
     collideWorld(m, world);
 
-    // Атака в упор (обычные дроны)
-    if (m.loseT <= 0 && dist < m.r + player.r + 6 && m.attackCd <= 0) {
+    // Страж начинает замах, когда подошёл вплотную
+    if (m.kind === 'knight' && m.loseT <= 0 && m.smashCd <= 0 && dist < 70) {
+      m.windupT = m.windupMax;
+      return null;
+    }
+
+    // Атака в упор (дрон-жало; страж бьёт только замахом)
+    if (m.kind !== 'knight' && m.loseT <= 0 && dist < m.r + player.r + 6 && m.attackCd <= 0) {
       m.attackCd = m.attackCdBase;
       return 'attack';
     }

@@ -81,6 +81,19 @@ const Game = {
     this.lowHpWarned = false;
     this.state = 'play';
 
+    // Патрули: бродячие дроны, охраняющие сектор (лом за уничтожение)
+    for (let n = 0; n < (this.star.patrols || 0); n++) {
+      let px = 0, py = 0, tries = 0;
+      do {
+        px = 60 + Math.random() * (this.world.w - 120);
+        py = 60 + Math.random() * (this.world.h - 120);
+      } while (Util.dist(px, py, this.world.capsule.x, this.world.capsule.y) < 300 && tries++ < 60);
+      const kind = this.star.id >= 2 && Math.random() < 0.35 ? 'knight' : 'bug';
+      const pm = Ents.makeMonster(kind, px, py, this.star, null);
+      pm.patrol = true; pm.aggro = false; pm.homeX = px; pm.homeY = py;
+      this.monsters.push(pm);
+    }
+
     UI.showScreen(null);
     UI.showHud(true);
     this._updateCamera();
@@ -176,6 +189,11 @@ const Game = {
       const a = Math.random() * Math.PI * 2;
       const m = Ents.makeMonster(kind, chest.x + Math.cos(a) * 30, chest.y + Math.sin(a) * 30, star, chest);
       this.monsters.push(m);
+      // На поздних секторах большой контейнер может выпустить и второго охранника
+      if (isBig && star.id >= 2 && Math.random() < 0.5) {
+        this.monsters.push(Ents.makeMonster('bug',
+          chest.x - Math.cos(a) * 30, chest.y - Math.sin(a) * 30, star, null));
+      }
       AudioSys.sfx('monster');
       this.cam.shake = 0.3;
       UI.toast('Из контейнера вырывается охрана: ' + Story.MONSTERS[kind].name + '!', 'danger');
@@ -197,10 +215,10 @@ const Game = {
     const isBig = chest.type === 'big';
     const k = riskBonus ? 1.5 : 1;
 
-    let gold = Math.round((isBig ? 18 + Math.random() * 14 : 5 + Math.random() * 8) * star.goldMul * k);
-    let food = isBig ? 2 + Math.floor(Math.random() * 2) : 1 + Math.floor(Math.random() * 2);
-    let meds = isBig ? 2 : (Math.random() < 0.3 ? 1 : 0);
-    let parts = isBig ? 1 : (riskBonus && Math.random() < 0.4 ? 1 : 0);
+    let gold = Math.round((isBig ? 12 + Math.random() * 10 : 3 + Math.random() * 5) * star.goldMul * k);
+    let food = isBig ? 1 + (Math.random() < 0.5 ? 1 : 0) : (Math.random() < 0.6 ? 1 : 0);
+    let meds = isBig ? 1 : (Math.random() < 0.12 ? 1 : 0);
+    let parts = isBig ? 1 : (riskBonus && Math.random() < 0.25 ? 1 : 0);
 
     d.gold += gold; d.food += food; d.meds += meds; d.parts += parts;
 
@@ -218,7 +236,7 @@ const Game = {
       d.curWeapon = 'plasma';
       UI.toast('Новое оружие: «Плазменный резак»! (Tab — смена)', 'gold');
       AudioSys.sfx('unlock');
-    } else if (this.player && Math.random() < (isBig ? 0.5 : 0.25)) {
+    } else if (this.player && Math.random() < (isBig ? 0.35 : 0.15)) {
       // Временный бафф из сундука
       if (Math.random() < 0.5) {
         this.player.buffSpeed = 20;
@@ -337,9 +355,9 @@ const Game = {
   },
 
   SHOP_ITEMS: [
-    { name: 'Еда ×3', cost: 15, apply(d) { d.food += 3; } },
-    { name: 'Аптечка', cost: 30, apply(d) { d.meds += 1; } },
-    { name: 'Стимулятор (случайный бафф)', cost: 20, apply(d, g) {
+    { name: 'Еда ×2', cost: 25, apply(d) { d.food += 2; } },
+    { name: 'Аптечка', cost: 40, apply(d) { d.meds += 1; } },
+    { name: 'Стимулятор (случайный бафф)', cost: 35, apply(d, g) {
         if (!g.player) return;
         if (Math.random() < 0.5) { g.player.buffSpeed = 25; UI.toast('+40% скорости на 25 с', 'gold'); }
         else { g.player.buffDmg = 25; UI.toast('+50% урона на 25 с', 'gold'); }
@@ -390,7 +408,7 @@ const Game = {
 
     // --- Голод ---
     this.foodTimer += dt;
-    if (this.foodTimer >= 25) {
+    if (this.foodTimer >= 15) {
       this.foodTimer = 0;
       const d = SaveSys.data;
       if (d.food > 0) {
@@ -401,7 +419,7 @@ const Game = {
     }
     if (SaveSys.data.food <= 0) {
       this.starveTimer += dt;
-      if (this.starveTimer >= 4) {
+      if (this.starveTimer >= 3) {
         this.starveTimer = 0;
         p.hp -= 1;
         AudioSys.sfx('hurt');
@@ -485,10 +503,10 @@ const Game = {
       const m = this.monsters[i];
       const act = Ents.updateMonster(m, dt, p, this.world);
       if (act === 'slam') {
-        // Удар Стража по площади: урон в радиусе, затем он перезаряжается
+        // Удар по площади (страж и босс): урон в радиусе, затем перезарядка
         AudioSys.sfx('guardian');
-        this.cam.shake = 0.6;
-        this._burst(m.x, m.y, '#8a93e8', 26);
+        this.cam.shake = m.kind === 'guardian' ? 0.6 : 0.35;
+        this._burst(m.x, m.y, m.color2, m.kind === 'guardian' ? 26 : 14);
         if (Util.dist(p.x, p.y, m.x, m.y) < m.slamR + p.r && p.inv <= 0) {
           p.hp -= m.dmg;
           p.inv = 0.6;
@@ -498,6 +516,8 @@ const Game = {
         }
         continue;
       }
+      if (act === 'aggro') { AudioSys.sfx('monster'); continue; }
+      if (act === 'lunge') { AudioSys.sfx('dash'); continue; }
       if (act === 'attack' && p.inv <= 0) {
         p.hp -= m.dmg;
         p.inv = 0.6; // окно неуязвимости — толпа не растерзает за секунду
@@ -588,6 +608,12 @@ const Game = {
     const d = SaveSys.data;
 
     if (m.lootChest) this.grantLoot(m.lootChest, true);
+
+    if (m.patrol) {
+      const scrap = Math.round((3 + Math.random() * 4) * (this.star ? this.star.goldMul : 1));
+      d.gold += scrap;
+      UI.toast('+' + scrap + ' лома (дрон уничтожен)', 'gold');
+    }
 
     if (m.kind === 'bug' && !d.seen.bugKill) {
       d.seen.bugKill = true;
@@ -801,20 +827,30 @@ const Game = {
       ctx.fillStyle = aura;
       ctx.beginPath(); ctx.arc(m.x, m.y, m.r * 2.4, 0, Math.PI * 2); ctx.fill();
 
-      // Телеграф удара по площади: красная зона растёт во время замаха
-      if (m.windupT > 0) {
-        const prog = 1 - m.windupT / 0.9;
-        ctx.fillStyle = 'rgba(232,74,95,' + (0.12 + prog * 0.15) + ')';
-        ctx.beginPath(); ctx.arc(m.x, m.y, m.slamR, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(232,74,95,0.8)';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(m.x, m.y, m.slamR * prog, 0, Math.PI * 2); ctx.stroke();
-      }
+    }
+
+    // Телеграф удара по площади (страж и босс): красная зона растёт во время замаха
+    if (m.windupT > 0 && m.slamR) {
+      const prog = 1 - m.windupT / m.windupMax;
+      ctx.fillStyle = 'rgba(232,74,95,' + (0.12 + prog * 0.15) + ')';
+      ctx.beginPath(); ctx.arc(m.x, m.y, m.slamR, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(232,74,95,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(m.x, m.y, m.slamR * prog, 0, Math.PI * 2); ctx.stroke();
     }
 
     ctx.fillStyle = m.hitFlash > 0 ? '#ffffff' : m.color;
     ctx.beginPath();
     if (m.kind === 'bug') {
+      // След рывка-укуса
+      if (m.lungeT > 0) {
+        ctx.fillStyle = 'rgba(232,200,74,0.35)';
+        ctx.beginPath();
+        ctx.arc(m.x - m.lungeDir.x * 18, m.y - m.lungeDir.y * 18, m.r * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = m.hitFlash > 0 ? '#ffffff' : m.color;
+        ctx.beginPath();
+      }
       ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
       ctx.fill();
       // Лапки-искры

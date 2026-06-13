@@ -8,7 +8,7 @@ const SaveSys = {
     return {
       version: 1,
       gold: 0,
-      food: 5,
+      food: 4,
       meds: 1,
       parts: 0,
       artifacts: [],        // например, «Сердце Ковчега»
