@@ -105,3 +105,25 @@ function collideWorld(e, world) {
     }
   }
 }
+
+// Точка (x, y) с радиусом r пересекает препятствие?
+function spotBlocked(world, x, y, r) {
+  for (const o of world.obstacles) {
+    const px = Util.clamp(x, o.x, o.x + o.w);
+    const py = Util.clamp(y, o.y, o.y + o.h);
+    const dx = x - px, dy = y - py;
+    if (dx * dx + dy * dy < r * r) return true;
+  }
+  return false;
+}
+
+// Осевое перемещение со «скольжением»: монстр обходит стену, а не дрожит в ней.
+// Каждая ось применяется отдельно и откатывается, если упёрлась в препятствие.
+function moveEntity(e, dx, dy, world) {
+  const ox = e.x;
+  e.x = Util.clamp(e.x + dx, e.r, world.w - e.r);
+  if (spotBlocked(world, e.x, e.y, e.r)) e.x = ox;
+  const oy = e.y;
+  e.y = Util.clamp(e.y + dy, e.r, world.h - e.r);
+  if (spotBlocked(world, e.x, e.y, e.r)) e.y = oy;
+}

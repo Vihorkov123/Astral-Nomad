@@ -1,4 +1,4 @@
-# Астральный скиталец (Astral Nomad)
+# Astral Nomad
 
 2D top-down sci-fi survival / rogue-lite на чистом Vanilla JS + HTML5 Canvas.
 Без сборщиков, без фреймворков, без внешних зависимостей.

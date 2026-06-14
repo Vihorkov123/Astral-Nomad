@@ -76,11 +76,9 @@ const Ents = {
       }
       m.slamCd -= dt;
       if (dist > m.r + 10) {
-        m.x += (dx / dist) * m.speed * dt;
-        m.y += (dy / dist) * m.speed * dt;
+        moveEntity(m, (dx / dist) * m.speed * dt, (dy / dist) * m.speed * dt, world);
         m.face.x = dx / dist; m.face.y = dy / dist;
       }
-      collideWorld(m, world);
       if (m.slamCd <= 0 && dist < 130) m.windupT = m.windupMax;
       return null;
     }
@@ -89,9 +87,9 @@ const Ents = {
     if (m.patrol && !m.aggro) {
       m.wanderA += (Math.random() - 0.5) * 2 * dt;
       const hx = m.homeX - m.x, hy = m.homeY - m.y;
-      m.x += (Math.cos(m.wanderA) * m.speed * 0.35 + hx * 0.2) * dt;
-      m.y += (Math.sin(m.wanderA) * m.speed * 0.35 + hy * 0.2) * dt;
-      collideWorld(m, world);
+      moveEntity(m,
+        (Math.cos(m.wanderA) * m.speed * 0.35 + hx * 0.2) * dt,
+        (Math.sin(m.wanderA) * m.speed * 0.35 + hy * 0.2) * dt, world);
       if (dist < 180) { m.aggro = true; return 'aggro'; }
       return null;
     }
@@ -110,9 +108,7 @@ const Ents = {
     if (m.kind === 'bug') {
       if (m.lungeT > 0) {
         m.lungeT -= dt;
-        m.x += m.lungeDir.x * 400 * dt;
-        m.y += m.lungeDir.y * 400 * dt;
-        collideWorld(m, world);
+        moveEntity(m, m.lungeDir.x * 400 * dt, m.lungeDir.y * 400 * dt, world);
         if (!m.lungeHit && dist < m.r + player.r + 4) { m.lungeHit = true; return 'attack'; }
         return null;
       }
@@ -127,15 +123,12 @@ const Ents = {
     if (m.loseT > 0) {
       // Потерял цель — бесцельно дрейфует
       m.wanderA += (Math.random() - 0.5) * 2 * dt;
-      m.x += Math.cos(m.wanderA) * m.speed * 0.4 * dt;
-      m.y += Math.sin(m.wanderA) * m.speed * 0.4 * dt;
+      moveEntity(m, Math.cos(m.wanderA) * m.speed * 0.4 * dt,
+                    Math.sin(m.wanderA) * m.speed * 0.4 * dt, world);
     } else if (dist > m.r + player.r + 2) {
-      m.x += (dx / dist) * m.speed * dt;
-      m.y += (dy / dist) * m.speed * dt;
+      moveEntity(m, (dx / dist) * m.speed * dt, (dy / dist) * m.speed * dt, world);
       m.face.x = dx / dist; m.face.y = dy / dist;
     }
-
-    collideWorld(m, world);
 
     // Страж начинает замах, когда подошёл вплотную
     if (m.kind === 'knight' && m.loseT <= 0 && m.smashCd <= 0 && dist < 70) {

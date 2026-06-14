@@ -90,7 +90,10 @@ const Game = {
       do {
         px = 60 + Math.random() * (this.world.w - 120);
         py = 60 + Math.random() * (this.world.h - 120);
-      } while (Util.dist(px, py, this.world.capsule.x, this.world.capsule.y) < 300 && tries++ < 60);
+        tries++;
+      } while (tries < 80 && (
+        Util.dist(px, py, this.world.capsule.x, this.world.capsule.y) < 300 ||
+        spotBlocked(this.world, px, py, 18)));   // не спавнить дрона внутри стены
       const kind = this.star.id >= 2 && Math.random() < 0.35 ? 'knight' : 'bug';
       const pm = Ents.makeMonster(kind, px, py, this.star, null);
       pm.patrol = true; pm.aggro = false; pm.homeX = px; pm.homeY = py;
