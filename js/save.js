@@ -11,15 +11,15 @@ const SaveSys = {
       food: 4,
       meds: 1,
       parts: 0,
-      artifacts: [],        // например, «Сердце Ковчега»
-      weapons: ['knife'],   // арсенал; плазменный резак — из первого большого сундука
+      artifacts: [],       
+      weapons: ['knife'],  
       curWeapon: 'knife',
       currentStar: 0,
-      maxStar: 0,           // максимальный ОТКРЫТЫЙ индекс звезды
-      endless: false,       // открыто после второй концовки
-      endingSeen: null,     // 1 | 2 | null
-      starState: {},        // { starId: { opened: [chestId, ...] } }
-      seen: {},             // просмотренные сюжетные сцены
+      maxStar: 0,         
+      endless: false,       
+      endingSeen: null,    
+      starState: {},      
+      seen: {},            
       vol: { master: 1, music: 0.6, sfx: 1 }
     };
   },
@@ -63,7 +63,6 @@ const SaveSys = {
     if (!arr.includes(chestId)) arr.push(chestId);
   },
 
-  // Дебаунс: частые события (слайдеры, серия сундуков) не спамят облако
   scheduleSave() {
     clearTimeout(this._timer);
     this._timer = setTimeout(() => this.saveNow(), 800);
