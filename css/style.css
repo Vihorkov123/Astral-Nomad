@@ -20,7 +20,6 @@ html, body {
 #ui { position: fixed; inset: 0; pointer-events: none; }
 #ui .screen, #ui #dialog, #ui #modal { pointer-events: auto; }
 
-/* Слои: модал всегда выше экранов, иначе кнопки подтверждения перекрываются меню */
 #hud { z-index: 10; }
 .screen { z-index: 20; }
 #dialog { z-index: 50; }
@@ -29,7 +28,6 @@ html, body {
 
 .hidden { display: none !important; }
 
-/* ---------- HUD ---------- */
 #hud {
   position: absolute; inset: 0;
   padding: 14px 18px;
@@ -90,7 +88,6 @@ html, body {
 .toast.gold { border-color: #c9a227; color: #ffe9a0; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; } }
 
-/* ---------- Диалог ---------- */
 #dialog {
   position: absolute; left: 50%; bottom: 6%;
   transform: translateX(-50%);
@@ -105,7 +102,6 @@ html, body {
 #dlg-text { font-size: 17px; line-height: 1.45; min-height: 50px; }
 #dlg-next { text-align: right; font-size: 11px; opacity: .5; margin-top: 6px; }
 
-/* ---------- Модал ---------- */
 #modal {
   position: absolute; inset: 0;
   background: rgba(0, 0, 0, .55);
@@ -122,7 +118,6 @@ html, body {
 #modal-desc { font-size: 15px; line-height: 1.5; opacity: .9; margin-bottom: 18px; white-space: pre-line; }
 #modal-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 
-/* ---------- Экраны ---------- */
 .screen {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
@@ -135,8 +130,7 @@ html, body {
 }
 .menu-box.wide { width: min(560px, 94vw); }
 .menu-box h1 {
-  /* clamp не даёт длинному заголовку вылезти за рамку и сбить центровку;
-     padding-left компенсирует «хвост» letter-spacing после последней буквы */
+
   font-size: clamp(19px, 5.4vw, 26px);
   letter-spacing: 3px;
   padding-left: 3px;
@@ -192,7 +186,6 @@ html, body {
 .star-item .star-sub { font-size: 12px; opacity: .7; margin-top: 3px; }
 .star-item .star-mark { font-size: 18px; }
 
-/* ---------- Настройки ---------- */
 .slider-row {
   display: flex; justify-content: space-between; align-items: center;
   gap: 16px;
