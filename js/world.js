@@ -2,8 +2,6 @@
 
 const TILE = 32;
 
-// Карта звезды детерминирована: при возврате на звезду расположение
-// сундуков и препятствий совпадает с прошлым визитом.
 function buildWorld(star) {
   const rng = Util.mulberry32(7331 + star.id * 9973);
   const w = star.size * TILE;
@@ -26,8 +24,8 @@ function buildWorld(star) {
   while (spots.length < total && guard++ < 4000) {
     const x = 80 + rng() * (w - 160);
     const y = 80 + rng() * (h - 160);
-    if (Util.dist(x, y, cx, cy) < 170) continue;            // не у капсулы
-    if (spots.some(s => Util.dist(x, y, s.x, s.y) < 150)) continue; // разнести
+    if (Util.dist(x, y, cx, cy) < 170) continue;            
+    if (spots.some(s => Util.dist(x, y, s.x, s.y) < 150)) continue; 
     spots.push({ x, y });
   }
 
@@ -65,7 +63,6 @@ function buildWorld(star) {
     }
   }
 
-  // --- Декор ---
   const decorCount = star.size * 4;
   for (let i = 0; i < decorCount; i++) {
     world.decor.push({
@@ -75,7 +72,6 @@ function buildWorld(star) {
     });
   }
 
-  // --- Погодные частицы (красный снег / споры / звёзды) ---
   for (let i = 0; i < 70; i++) {
     world.weather.push({
       x: rng() * w, y: rng() * h,
@@ -87,7 +83,6 @@ function buildWorld(star) {
   return world;
 }
 
-// Столкновение круга с прямоугольниками и границами карты
 function collideWorld(e, world) {
   e.x = Util.clamp(e.x, e.r, world.w - e.r);
   e.y = Util.clamp(e.y, e.r, world.h - e.r);
@@ -98,7 +93,7 @@ function collideWorld(e, world) {
     const d2 = dx * dx + dy * dy;
     if (d2 < e.r * e.r) {
       let d = Math.sqrt(d2);
-      if (d < 0.01) { dx = 0; dy = -1; d = 1; } // центр внутри — выталкиваем вверх
+      if (d < 0.01) { dx = 0; dy = -1; d = 1; } 
       const push = (e.r - d) / d;
       e.x += dx * push;
       e.y += dy * push;
@@ -106,7 +101,7 @@ function collideWorld(e, world) {
   }
 }
 
-// Точка (x, y) с радиусом r пересекает препятствие?
+
 function spotBlocked(world, x, y, r) {
   for (const o of world.obstacles) {
     const px = Util.clamp(x, o.x, o.x + o.w);
@@ -117,8 +112,7 @@ function spotBlocked(world, x, y, r) {
   return false;
 }
 
-// Осевое перемещение со «скольжением»: монстр обходит стену, а не дрожит в ней.
-// Каждая ось применяется отдельно и откатывается, если упёрлась в препятствие.
+
 function moveEntity(e, dx, dy, world) {
   const ox = e.x;
   e.x = Util.clamp(e.x + dx, e.r, world.w - e.r);
