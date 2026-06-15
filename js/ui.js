@@ -282,5 +282,4 @@ const UI = {
   }
 };
 
-// Явный экспорт в window (top-level const не становится свойством window)
 window.UI = UI;
