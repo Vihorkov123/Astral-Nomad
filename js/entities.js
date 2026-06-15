@@ -2,7 +2,6 @@
 
 const Ents = {
 
-  // Оружие: arc — минимальный косинус угла до цели (меньше = шире взмах)
   WEAPONS: {
     knife:  { id: 'knife',  name: 'Нож',              short: '🔪 Нож',   dmg: 2, range: 56, arc: 0.15, cd: 0.4,  color: 'rgba(220,235,255,' },
     plasma: { id: 'plasma', name: 'Плазменный резак', short: '⚡ Резак', dmg: 7, range: 82, arc: -0.2, cd: 0.7, color: 'rgba(110,230,255,' }
@@ -20,11 +19,10 @@ const Ents = {
       attackCd: 0, attackAnim: 0,
       dashT: 0, dashCd: 0, inv: 0,
       dashDir: { x: 0, y: 1 },
-      buffSpeed: 0, buffDmg: 0   // таймеры баффов, сек
+      buffSpeed: 0, buffDmg: 0  
     };
   },
 
-  // База монстров; множители звезды применяются при спавне
   MONSTER_BASE: {
     bug:      { r: 10, hp: 8,  dmg: 3, speed: 185, attackCd: 0.8, color: '#e8c84a', color2: '#9a7510' },
     knight:   { r: 17, hp: 22, dmg: 5, speed: 75,  attackCd: 1.4, color: '#7a9a6a', color2: '#3d5232' },
@@ -33,7 +31,7 @@ const Ents = {
 
   makeMonster(kind, x, y, star, lootChest) {
     const b = this.MONSTER_BASE[kind];
-    const mul = kind === 'guardian' ? 1 : star.hpMul; // босс не скейлится
+    const mul = kind === 'guardian' ? 1 : star.hpMul; 
     const dmul = kind === 'guardian' ? 1 : star.dmgMul;
     return {
       kind, x, y, r: b.r,
@@ -43,11 +41,9 @@ const Ents = {
       attackCd: 0.6,
       color: b.color, color2: b.color2,
       lootChest: lootChest || null,
-      loseT: 0,                 // после рывка игрока цель потеряна
+      loseT: 0,                 
       wanderA: Math.random() * Math.PI * 2,
-      patrol: false, aggro: true, homeX: x, homeY: y, // патрули бродят, пока не заметят игрока
-      // Телеграфированные атаки: у всех мобов, как у босса
-      // bug: рывок-укус; knight: замах → удар по площади; guardian: то же, но больше
+      patrol: false, aggro: true, homeX: x, homeY: y, 
       windupT: 0, windupMax: kind === 'knight' ? 0.6 : 0.9,
       slamCd: 2, smashCd: 1,
       slamR: kind === 'guardian' ? 95 : (kind === 'knight' ? 58 : 0),
@@ -66,10 +62,10 @@ const Ents = {
     const dx = player.x - m.x, dy = player.y - m.y;
     const dist = Math.hypot(dx, dy) || 0.001;
 
-    // --- Страж Ядра: цикл «замах → удар по площади → перезарядка» ---
+    
     if (m.kind === 'guardian') {
-      if (m.vulnT > 0) { m.vulnT -= dt; return null; }   // перезарядка: стоит, уязвим
-      if (m.windupT > 0) {                                // замах: телеграф удара
+      if (m.vulnT > 0) { m.vulnT -= dt; return null; }   
+      if (m.windupT > 0) {                               
         m.windupT -= dt;
         if (m.windupT <= 0) { m.vulnT = 3.0; m.slamCd = 1.2; return 'slam'; }
         return null;
@@ -83,7 +79,6 @@ const Ents = {
       return null;
     }
 
-    // --- Патруль: дрейфует у своей точки, пока игрок не подойдёт ---
     if (m.patrol && !m.aggro) {
       m.wanderA += (Math.random() - 0.5) * 2 * dt;
       const hx = m.homeX - m.x, hy = m.homeY - m.y;
@@ -94,17 +89,17 @@ const Ents = {
       return null;
     }
 
-    // --- Тяжёлый страж: замах → удар по площади (мини-версия босса) ---
+
     if (m.kind === 'knight') {
       if (m.windupT > 0) {
         m.windupT -= dt;
         if (m.windupT <= 0) { m.smashCd = 2.2; return 'slam'; }
-        return null; // стоит и замахивается — окно, чтобы отбежать
+        return null;
       }
       m.smashCd -= dt;
     }
 
-    // --- Дрон-жало: рывок-укус с разгона ---
+
     if (m.kind === 'bug') {
       if (m.lungeT > 0) {
         m.lungeT -= dt;
@@ -121,7 +116,7 @@ const Ents = {
     }
 
     if (m.loseT > 0) {
-      // Потерял цель — бесцельно дрейфует
+    
       m.wanderA += (Math.random() - 0.5) * 2 * dt;
       moveEntity(m, Math.cos(m.wanderA) * m.speed * 0.4 * dt,
                     Math.sin(m.wanderA) * m.speed * 0.4 * dt, world);
@@ -130,13 +125,11 @@ const Ents = {
       m.face.x = dx / dist; m.face.y = dy / dist;
     }
 
-    // Страж начинает замах, когда подошёл вплотную
+  
     if (m.kind === 'knight' && m.loseT <= 0 && m.smashCd <= 0 && dist < 70) {
       m.windupT = m.windupMax;
       return null;
     }
-
-    // Атака в упор (дрон-жало; страж бьёт только замахом)
     if (m.kind !== 'knight' && m.loseT <= 0 && dist < m.r + player.r + 6 && m.attackCd <= 0) {
       m.attackCd = m.attackCdBase;
       return 'attack';
