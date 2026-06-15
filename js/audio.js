@@ -1,13 +1,11 @@
 'use strict';
 
-// Весь звук генерируется WebAudio API — в билде нет ни одного аудиофайла.
 const AudioSys = {
   ctx: null,
   master: null, musicGain: null, sfxGain: null,
   _musicTimer: null,
   _step: 0,
 
-  // Вызывается строго после пользовательского жеста (требование браузеров)
   init() {
     if (this.ctx) return;
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -42,7 +40,6 @@ const AudioSys = {
   suspend() { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); },
   resume()  { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
 
-  // --- Примитивы синтеза ---
   _tone(freq, dur, type, vol, slideTo, dest) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
@@ -74,7 +71,6 @@ const AudioSys = {
     src.start(t);
   },
 
-  // --- Эффекты ---
   sfx(name) {
     if (!this.ctx || this.ctx.state !== 'running') return;
     switch (name) {
@@ -97,10 +93,10 @@ const AudioSys = {
     }
   },
 
-  // --- Эмбиент-музыка: медленный минорный арпеджиатор ---
+
   _startMusic() {
     if (this._musicTimer) return;
-    const scale = [110, 130.81, 164.81, 196, 220, 261.63, 329.63]; // A-минор
+    const scale = [110, 130.81, 164.81, 196, 220, 261.63, 329.63]; 
     this._musicTimer = setInterval(() => {
       if (!this.ctx || this.ctx.state !== 'running') return;
       this._step++;
