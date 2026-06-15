@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Astral Nomad</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="ui">
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="bar-wrap" title="Здоровье">
+        <div id="hp-bar" class="bar hp"></div>
+        <span id="hp-text" class="bar-text"></span>
+      </div>
+      <div class="res-row">
+        <span class="res" title="Еда">🥫 <b id="res-food">0</b></span>
+        <span class="res" title="Лом — валюта магазина">🔩 <b id="res-gold">0</b></span>
+        <span class="res" title="Аптечки">✚ <b id="res-meds">0</b></span>
+        <span class="res" title="Энергоячейки">🔋 <b id="res-parts">0</b></span>
+        <span class="res" title="Оружие (Tab — смена)" id="res-weapon">🔪 Нож</span>
+      </div>
+      <div id="buff-row"></div>
+    </div>
+    <div class="hud-right">
+      <div id="star-name"></div>
+      <div id="star-progress"></div>
+    </div>
+    <div id="prompt" class="hidden"></div>
+    <div id="controls-hint">WASD — движение &nbsp;·&nbsp; мышь — прицел &nbsp;·&nbsp; ЛКМ / E — удар &nbsp;·&nbsp; E — действие &nbsp;·&nbsp; Пробел — рывок &nbsp;·&nbsp; Q — аптечка &nbsp;·&nbsp; Tab — оружие &nbsp;·&nbsp; Esc — пауза</div>
+  </div>
+
+  <div id="toasts"></div>
+
+  <!-- Диалог -->
+  <div id="dialog" class="hidden">
+    <div id="dlg-who"></div>
+    <div id="dlg-text"></div>
+    <div id="dlg-next">нажми E / клик ▼</div>
+  </div>
+
+  <!-- Модальное окно выбора -->
+  <div id="modal" class="hidden">
+    <div class="modal-box">
+      <div id="modal-title"></div>
+      <div id="modal-desc"></div>
+      <div id="modal-buttons"></div>
+    </div>
+  </div>
+
+  <!-- Главное меню -->
+  <div id="screen-menu" class="screen">
+    <div class="menu-box">
+      <h1>ASTRAL NOMAD</h1>
+      <p class="subtitle">Собери энергию. Вспомни всё. Вернись домой.</p>
+      <button id="btn-continue" class="btn hidden">Продолжить</button>
+      <button id="btn-new" class="btn">Новая игра</button>
+      <button id="btn-settings" class="btn">Настройки</button>
+      <p class="menu-note">Управление: клавиатура. 12+</p>
+    </div>
+  </div>
+
+  <!-- Карта звёзд -->
+  <div id="screen-starmap" class="screen hidden">
+    <div class="menu-box wide">
+      <h2>КАРТА СЕКТОРОВ</h2>
+      <div id="star-list"></div>
+      <button id="btn-map-back" class="btn small">Назад</button>
+    </div>
+  </div>
+
+  <!-- Экран смерти -->
+  <div id="screen-death" class="screen hidden">
+    <div class="menu-box death">
+      <h2>МЕДКАПСУЛА АКТИВИРОВАНА</h2>
+      <p id="death-text"></p>
+      <button id="btn-respawn" class="btn">Возродиться</button>
+    </div>
+  </div>
+
+  <!-- Концовка -->
+  <div id="screen-ending" class="screen hidden">
+    <div class="menu-box">
+      <h2 id="ending-title"></h2>
+      <p id="ending-text"></p>
+      <button id="btn-ending-continue" class="btn hidden">Исследовать дальше</button>
+      <button id="btn-ending-menu" class="btn">В главное меню</button>
+    </div>
+  </div>
+
+  <!-- Пауза -->
+  <div id="screen-pause" class="screen hidden">
+    <div class="menu-box">
+      <h2>ПАУЗА</h2>
+      <button id="btn-resume" class="btn">Продолжить</button>
+      <button id="btn-pause-map" class="btn">Карта секторов</button>
+      <button id="btn-pause-settings" class="btn">Настройки</button>
+      <button id="btn-pause-menu" class="btn">В главное меню</button>
+    </div>
+  </div>
+
+  <!-- Настройки -->
+  <div id="screen-settings" class="screen hidden">
+    <div class="menu-box">
+      <h2>НАСТРОЙКИ</h2>
+      <label class="slider-row">Общая громкость
+        <input type="range" id="vol-master" min="0" max="100" value="100">
+      </label>
+      <label class="slider-row">Музыка
+        <input type="range" id="vol-music" min="0" max="100" value="60">
+      </label>
+      <label class="slider-row">Эффекты
+        <input type="range" id="vol-sfx" min="0" max="100" value="100">
+      </label>
+      <button id="btn-settings-back" class="btn small">Назад</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/stars.js"></script>
+<script src="js/story.js"></script>
+<script src="js/sdk.js"></script>
+<script src="js/save.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/world.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
