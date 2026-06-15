@@ -1,12 +1,12 @@
 'use strict';
 
-const ZOOM = 1.5; // приближение камеры к астронавту
-const MED_HEAL = 18;          // лечение аптечкой (сильнее сна в капсуле)
-const REST_HEAL = 10;         // лечение сном за 1 еду
-const CHEST_GUARD_RADIUS = 220; // нельзя вскрывать контейнер, если ближе есть дрон
+const ZOOM = 1.5;
+const MED_HEAL = 18; 
+const REST_HEAL = 10; 
+const CHEST_GUARD_RADIUS = 220;
 
 const Game = {
-  state: 'menu',          // 'menu' | 'play'
+  state: 'menu',          
   autoPaused: false,
   time: 0,
   view: { w: 1280, h: 720, dpr: 1 },
@@ -23,7 +23,7 @@ const Game = {
   starveTimer: 0,
   lowHpWarned: false,
 
-  // ================= Жизненный цикл =================
+
 
   newGame() {
     SaveSys.reset();
@@ -52,7 +52,6 @@ const Game = {
     SaveSys.saveNow();
   },
 
-  // ================= Карта звёзд =================
 
   openStarMap() {
     SDK.gameplayStop();
@@ -65,7 +64,6 @@ const Game = {
       UI.showScreen(null);
       SDK.gameplayStart();
     } else {
-      // Пришли из меню/пролога — лететь некуда, выбираем текущую звезду
       this.travelTo(SaveSys.data.currentStar);
     }
   },
@@ -84,7 +82,6 @@ const Game = {
     this.lowHpWarned = false;
     this.state = 'play';
 
-    // Патрули: бродячие дроны, охраняющие сектор (лом за уничтожение)
     for (let n = 0; n < (this.star.patrols || 0); n++) {
       let px = 0, py = 0, tries = 0;
       do {
@@ -93,20 +90,18 @@ const Game = {
         tries++;
       } while (tries < 80 && (
         Util.dist(px, py, this.world.capsule.x, this.world.capsule.y) < 300 ||
-        spotBlocked(this.world, px, py, 18)));   // не спавнить дрона внутри стены
+        spotBlocked(this.world, px, py, 18)));   
       const kind = this.star.id >= 2 && Math.random() < 0.35 ? 'knight' : 'bug';
       const pm = Ents.makeMonster(kind, px, py, this.star, null);
       pm.patrol = true; pm.aggro = false; pm.homeX = px; pm.homeY = py;
       this.monsters.push(pm);
     }
 
-    // Сектор Стража: если все контейнеры вскрыты, но босс ещё жив (например,
-    // игрок погиб в бою с ним) — возвращаем один контейнер, чтобы призвать снова
     if (this.star.guardian && !d.seen.guardianDead) {
       const total = this.star.small + this.star.big;
       const opened = SaveSys.starOpened(this.star.id);
       if (opened.length >= total) {
-        const reopenId = total - 1; // последний (большой) контейнер
+        const reopenId = total - 1; 
         const arr = SaveSys.data.starState[this.star.id].opened;
         const idx = arr.indexOf(reopenId);
         if (idx >= 0) arr.splice(idx, 1);
@@ -122,7 +117,6 @@ const Game = {
     SaveSys.saveNow();
     SDK.gameplayStart();
 
-    // Сюжетные сцены при первом прибытии: память возвращается по секторам
     const seen = d.seen;
     if (i === 0 && !seen.act1) { seen.act1 = true; UI.say(Story.ACT1); SaveSys.scheduleSave(); }
     else if (i === 1 && !seen.act2) { seen.act2 = true; UI.say(Story.ACT2); SaveSys.scheduleSave(); }
@@ -131,7 +125,6 @@ const Game = {
     else if (i === 4 && !seen.finale) { seen.finale = true; UI.say(Story.FINALE_INTRO); SaveSys.scheduleSave(); }
   },
 
-  // ================= Пауза =================
 
   openPause() {
     if (this.state !== 'play') return;
@@ -157,7 +150,6 @@ const Game = {
     if (this.state === 'play' && !UI.anyScreenOpen()) this.openPause();
   },
 
-  // Автопауза при сворачивании вкладки/окна
   setAutoPause(hidden) {
     if (hidden) {
       this.autoPaused = true;
@@ -169,19 +161,16 @@ const Game = {
     }
   },
 
-  // ================= Сундуки =================
 
   _chestTitle(type) {
     return type === 'small' ? 'Малый контейнер'
          : type === 'big' ? 'Большой контейнер' : 'Консоль капсулы';
   },
 
-  // Есть ли живой дрон в радиусе r от точки (x, y)
   monstersNear(x, y, r) {
     return this.monsters.some(m => Util.dist(x, y, m.x, m.y) < r);
   },
 
-  // Перевод позиции курсора (CSS-пиксели) в мировые координаты
   mouseWorld() {
     return {
       x: this.cam.x + Input.mouse.x / ZOOM,
@@ -219,12 +208,11 @@ const Game = {
     const chance = isBig ? star.bigChance : star.smallChance;
 
     if (Math.random() < chance) {
-      // Из сундука — тень
       const kind = isBig ? 'knight' : 'bug';
       const a = Math.random() * Math.PI * 2;
       const m = Ents.makeMonster(kind, chest.x + Math.cos(a) * 30, chest.y + Math.sin(a) * 30, star, chest);
       this.monsters.push(m);
-      // На поздних секторах большой контейнер может выпустить и второго охранника
+      
       if (isBig && star.id >= 2 && Math.random() < 0.5) {
         this.monsters.push(Ents.makeMonster('bug',
           chest.x - Math.cos(a) * 30, chest.y - Math.sin(a) * 30, star, null));
@@ -260,7 +248,6 @@ const Game = {
     AudioSys.sfx('loot');
     AudioSys.sfx('gold');
     this._burst(chest.x, chest.y, '#ffe9a0', 14);
-    // В тост попадают только реально выпавшие ресурсы (без «+0 …»)
     const parts_msg = [];
     if (gold) parts_msg.push('+' + gold + ' лома');
     if (food) parts_msg.push('+' + food + ' еды');
@@ -268,14 +255,12 @@ const Game = {
     if (parts) parts_msg.push('+' + parts + ' энергоячейка');
     if (parts_msg.length) UI.toast(parts_msg.join(', '), 'gold');
 
-    // Первый большой контейнер даёт второе оружие
     if (isBig && !d.weapons.includes('plasma')) {
       d.weapons.push('plasma');
       d.curWeapon = 'plasma';
       UI.toast('Новое оружие: плазменный резак (Tab — смена)', 'gold');
       AudioSys.sfx('unlock');
     } else if (this.player && Math.random() < (isBig ? 0.35 : 0.15)) {
-      // Временный бафф из контейнера
       if (Math.random() < 0.5) {
         this.player.buffSpeed = 20;
         UI.toast('Ускорение +40% на 20 с', 'gold');
@@ -293,7 +278,6 @@ const Game = {
     const opened = SaveSys.starOpened(star.id).length;
     const total = star.small + star.big;
 
-    // Открытие следующей звезды
     if (!star.finale && opened >= star.needOpen && d.maxStar === star.id) {
       const lastBase = BASE_STARS.length - 1;
       if (star.id < lastBase || d.endless) {
@@ -303,7 +287,6 @@ const Game = {
       }
     }
 
-    // Страж Ядра: вскрыты ВСЕ контейнеры в Древнем комплексе
     if (star.guardian && opened >= total && !d.seen.guardianDead && !this.monsters.some(m => m.kind === 'guardian')) {
       const m = Ents.makeMonster('guardian', this.world.capsule.x, this.world.capsule.y - 180, star, null);
       this.monsters.push(m);
@@ -313,7 +296,6 @@ const Game = {
     }
   },
 
-  // ================= Финал =================
 
   finaleChoice() {
     const c = Story.FINALE_CHOICE;
@@ -332,7 +314,7 @@ const Game = {
     d.endingSeen = n;
     if (n === 2) {
       d.endless = true;
-      d.maxStar = Math.max(d.maxStar, BASE_STARS.length); // открыта 6-я звезда
+      d.maxStar = Math.max(d.maxStar, BASE_STARS.length); 
     }
     SDK.gameplayStop();
     SaveSys.saveNow();
@@ -344,7 +326,6 @@ const Game = {
     this.openStarMap();
   },
 
-  // ================= Смерть =================
 
   die() {
     const d = SaveSys.data;
@@ -360,12 +341,12 @@ const Game = {
   respawn() {
     const first = !SaveSys.data.seen.death;
     SaveSys.data.seen.death = true;
-    // Монстры сбрасываются, открытые сундуки остаются открытыми
+
     this.travelTo(SaveSys.data.currentStar);
     if (first) UI.say(Story.ACT3_DEATH);
   },
 
-  // ================= Капсула: отдых, синтезатор, карта =================
+ 
 
   capsuleMenu() {
     const d = SaveSys.data;
@@ -414,13 +395,12 @@ const Game = {
     const d = SaveSys.data;
     const opts = this.SHOP_ITEMS.map((it, i) => ({
       label: it.name + ' — ' + it.cost + ' лома',
-      cb: () => { this.buyShopItem(i); this.openShop(); } // окно остаётся: удобно брать несколько
+      cb: () => { this.buyShopItem(i); this.openShop(); } 
     }));
     opts.push({ label: 'Закрыть' });
     UI.modal('Магазин', 'Лом: ' + d.gold, opts);
   },
 
-  // ================= Обновление =================
 
   _uiBlocked() {
     return UI.anyScreenOpen() || UI.dialogOpenNow() || UI.modalOpen;
@@ -432,7 +412,6 @@ const Game = {
 
     if (this.state !== 'play' || !this.world) return;
 
-    // Погода крутится даже под диалогом — мир «жив»
     this._updateWeather(dt);
     this._updateParticles(dt);
 
@@ -440,7 +419,6 @@ const Game = {
 
     const p = this.player;
 
-    // --- Голод ---
     this.foodTimer += dt;
     if (this.foodTimer >= 15) {
       this.foodTimer = 0;
@@ -464,7 +442,6 @@ const Game = {
       this.starveTimer = 0;
     }
 
-    // --- Движение, рывок, баффы ---
     p.attackCd -= dt;
     p.attackAnim = Math.max(0, p.attackAnim - dt);
     p.dashCd -= dt;
@@ -485,7 +462,6 @@ const Game = {
     }
     collideWorld(p, this.world);
 
-    // Прицел мышью: если игрок пользуется мышью, герой смотрит на курсор
     if (Input.mouse.active) {
       const mw = this.mouseWorld();
       const dx = mw.x - p.x, dy = mw.y - p.y;
@@ -502,11 +478,9 @@ const Game = {
       const len = Math.hypot(ax.x, ax.y);
       p.dashDir = len ? { x: ax.x / len, y: ax.y / len } : { x: p.face.x, y: p.face.y };
       AudioSys.sfx('dash');
-      // Быстрые монстры на секунду теряют цель; сильные — нет
       for (const m of this.monsters) if (m.kind === 'bug') m.loseT = 1.0;
     }
 
-    // --- Аптечка ---
     if (Input.wasPressed('KeyQ')) {
       const d = SaveSys.data;
       if (d.meds > 0 && p.hp < p.maxHp) {
@@ -518,7 +492,6 @@ const Game = {
       }
     }
 
-    // --- Взаимодействие ---
     let prompt = null;
     let target = null;
     for (const c of this.world.chests) {
@@ -550,15 +523,13 @@ const Game = {
       else this.attack();
     }
 
-    // Удар по ЛКМ (направление — по курсу мыши)
     if (Input.mouse.pressedLeft) this.attack();
 
-    // --- Монстры ---
     for (let i = this.monsters.length - 1; i >= 0; i--) {
       const m = this.monsters[i];
       const act = Ents.updateMonster(m, dt, p, this.world);
       if (act === 'slam') {
-        // Удар по площади (страж и босс): урон в радиусе, затем перезарядка
+        
         AudioSys.sfx('guardian');
         this.cam.shake = m.kind === 'guardian' ? 0.6 : 0.35;
         this._burst(m.x, m.y, m.color2, m.kind === 'guardian' ? 26 : 14);
@@ -886,7 +857,6 @@ const Game = {
 
     }
 
-    // Телеграф удара по площади (страж и босс): красная зона растёт во время замаха
     if (m.windupT > 0 && m.slamR) {
       const prog = 1 - m.windupT / m.windupMax;
       ctx.fillStyle = 'rgba(232,74,95,' + (0.12 + prog * 0.15) + ')';
