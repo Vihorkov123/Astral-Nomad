@@ -5,8 +5,6 @@
   const ctx = canvas.getContext('2d');
 
   function resize() {
-    // Буфер — в физических пикселях (чётко на любом DPI),
-    // логика и камера — в CSS-пикселях: любой аспект 21:9 / 16:9 / 4:3
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.floor(window.innerWidth * dpr);
     canvas.height = Math.floor(window.innerHeight * dpr);
@@ -17,14 +15,13 @@
   window.addEventListener('resize', resize);
   resize();
 
-  // Браузеры разрешают звук только после жеста пользователя
   const unlockAudio = () => { AudioSys.init(); AudioSys.resume(); };
   document.addEventListener('pointerdown', unlockAudio);
   document.addEventListener('keydown', unlockAudio);
 
   let last = performance.now();
   function frame(now) {
-    const dt = Math.min((now - last) / 1000, 0.05); // защита от скачка после паузы
+    const dt = Math.min((now - last) / 1000, 0.05); 
     last = now;
 
     if (!Game.autoPaused) Game.update(dt);
@@ -43,14 +40,14 @@
     Input.init();
     UI.init();
 
-    await SDK.init();        // Yandex SDK или тихий fallback
-    await SaveSys.load();    // облако → localStorage → новый профиль
+    await SDK.init();       
+    await SaveSys.load();    
 
     AudioSys.applyVolumes();
     UI.refreshMenu();
     UI.showScreen('screen-menu');
 
-    SDK.loadingReady();      // сообщаем платформе: игра готова
+    SDK.loadingReady();     
 
     requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
   }
